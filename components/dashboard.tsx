@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Bell, Calendar, Clock, Home, LogOut, Menu, Shield, User } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -18,12 +18,53 @@ import { ItemRegistration } from "@/components/item-registration"
 import { ItemChecking } from "@/components/item-checking"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { io } from "socket.io-client";
+
+type ScanUpdate = {
+  timestamp: string;
+  deviceId: string;
+  personnelData: any;
+};
 
 export default function Dashboard() {
   const { toast } = useToast()
   const [activeUser, setActiveUser] = useState<any>(null)
   const [direction, setDirection] = useState<"entry" | "exit">("entry")
   const [registeredItems, setRegisteredItems] = useState<any[]>([])
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "";
+    console.log("Attempting to connect to WebSocket URL:", wsUrl); // <-- Add this log
+    
+    if (!wsUrl) {
+      console.error("WebSocket URL is not defined!");
+      return;
+    }
+    
+    const socket = io(wsUrl, {
+      transports: ["websocket"],
+    });
+
+    socket.on("connect", () => {
+      setConnected(true);
+      console.log("Connected to websocket");
+    });
+
+    socket.on("disconnect", () => {
+      setConnected(false);
+      console.log("Disconnected from websocket");
+    });
+
+    socket.on("scanUpdate", (data: ScanUpdate) => {
+      console.log("Was here!!")
+      handleScan(data.personnelData);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const handleScan = (user: any) => {
     setActiveUser(user)

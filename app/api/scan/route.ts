@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     // Access individual fields
     const nfc_data = formData.get('nfc_data');
-    const device_name = formData.get('device_name'); // This will be a File object or null
+    const device_name = formData.get('device_data'); // This will be a File object or null
 
     // Basic validation
     if (!nfc_data || !device_name) {

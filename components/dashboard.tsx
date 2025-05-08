@@ -19,6 +19,16 @@ import { ItemChecking } from "@/components/item-checking"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { io } from "socket.io-client";
+import { gql, useQuery } from "@apollo/client"
+
+const GET_USERS = gql`
+  query Users {
+    users {
+      id
+      name
+    }
+  }
+`;
 
 type ScanUpdate = {
   timestamp: string;
@@ -32,8 +42,10 @@ export default function Dashboard() {
   const [direction, setDirection] = useState<"entry" | "exit">("entry")
   const [registeredItems, setRegisteredItems] = useState<any[]>([])
   const [connected, setConnected] = useState(false);
+  const {loading, error, data} = useQuery(GET_USERS)
 
   useEffect(() => {
+    // Connecting to the websocket
     const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "";
     console.log("Attempting to connect to WebSocket URL:", wsUrl); // <-- Add this log
     
@@ -193,7 +205,7 @@ export default function Dashboard() {
             <span className="sr-only">Notifications</span>
           </Button>
           <Avatar>
-            <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Avatar" />
+            <AvatarImage src="https://robohash.org/placeholder?height=32&width=32" alt="Avatar" />
             <AvatarFallback>SO</AvatarFallback>
           </Avatar>
         </div>

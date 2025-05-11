@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Bell, Calendar, Clock, Home, LogOut, Menu, Shield, User } from "lucide-react"
+import { BarChart3, Bell, Calendar, Clock, Home, LogOut, Menu, Settings, Shield, User, Users } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -184,13 +184,17 @@ export default function Dashboard() {
                 <Home className="h-5 w-5" />
                 Dashboard
               </a>
-              <div className="flex-1"></div>
-              <a
-                href="#"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <LogOut className="h-5 w-5" />
-                Logout
+              <a href="#" className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Personnel
+              </a>
+              <a href="#" className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Reports
+              </a>
+              <a href="#" className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Settings
               </a>
             </nav>
           </SheetContent>
@@ -219,6 +223,27 @@ export default function Dashboard() {
             >
               <Home className="h-5 w-5" />
               Dashboard
+            </a>
+            <a
+              href="#"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Users className="h-5 w-5" />
+              Personnel
+            </a>
+            <a
+              href="#"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <BarChart3 className="h-5 w-5" />
+              Reports
+            </a>
+            <a
+              href="#"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Settings className="h-5 w-5" />
+              Settings
             </a>
             <div className="flex-1"></div>
             <a

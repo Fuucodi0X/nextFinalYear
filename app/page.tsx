@@ -1,13 +1,6 @@
-"use client"
-
-import Dashboard from "@/components/dashboard"
-import { ApolloProvider } from '@apollo/client';
-import client from '../lib/apollo/client';
+import { redirect } from "next/navigation"
 
 export default function Home() {
-  return (
-    <ApolloProvider client={client}>
-      <Dashboard />
-    </ApolloProvider>
-  ) 
+  // Redirect to login page
+  redirect("/login")
 }

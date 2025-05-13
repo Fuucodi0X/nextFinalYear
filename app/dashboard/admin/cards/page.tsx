@@ -22,6 +22,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, ContactIcon as ContactlessIcon } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { io, Socket } from "socket.io-client";
+import { gql, useMutation } from "@apollo/client"
 
 // Initial card data
 const initialCards = [
@@ -53,15 +55,27 @@ const navItems = [
   { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
 ]
 
+// Queries and Mutations
+// const ADD_NFC = gql`
+//   mutation AddNfc($nfc_id: String!) {
+//     addNfc(nfc_id: $nfc_id){
+//       affected_rows
+//     }
+//   }
+// `;
+
 export default function CardsPage() {
   const { toast } = useToast()
   const [cards, setCards] = useState(initialCards)
   const [searchQuery, setSearchQuery] = useState("")
   const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
-  const [scannedCardId, setScannedCardId] = useState<string | null>(null)
+  const [scannedCardId, setScannedCardId] = useState<string>("")
   const [cardError, setCardError] = useState<string | null>(null)
   const [isRegistering, setIsRegistering] = useState(false)
+  const [isWsConnected, setIsWsConnected] = useState(false)
+  const [socket, setSocket] = useState<Socket | undefined>(undefined)
+  // const [addCard, { data, loading, error}] = useMutation(ADD_NFC)
 
   // Filter cards based on search query
   const filteredCards = cards.filter((card) => {
@@ -81,42 +95,14 @@ export default function CardsPage() {
   const unassignedCards = cards.filter((card) => card.status === "Unassigned").length
   const inactiveCards = cards.filter((card) => card.status === "Inactive").length
 
-  const handleScanCard = () => {
-    setIsScanning(true)
-    setCardError(null)
-    setScannedCardId(null)
-
-    // Simulate scanning process
-    setTimeout(() => {
-      // Generate a random card ID
-      const newCardId = `CARD-${Math.floor(4000 + Math.random() * 1000)}`
-
-      // Randomly decide if the card is already registered (for demo purposes)
-      const isAlreadyRegistered = Math.random() > 0.7
-
-      if (isAlreadyRegistered) {
-        // Simulate finding an existing card
-        const existingCardId = cards[Math.floor(Math.random() * cards.length)].id
-        setScannedCardId(existingCardId)
-        setCardError(`Card ${existingCardId} is already registered in the system.`)
-        toast({
-          title: "Card Already Registered",
-          description: `Card ${existingCardId} is already registered in the system.`,
-          variant: "destructive",
-        })
-      } else {
-        // New card detected
-        setScannedCardId(newCardId)
-        toast({
-          title: "Card Detected",
-          description: `New card ${newCardId} detected and ready for registration.`,
-        })
-      }
-
-      setIsScanning(false)
-    }, 2000)
+  const registerNfcCard = () => {
+    // addCard({ variables: { type: scannedCardId } }).then(() => {
+    //   if (!error) {
+    //     setCardError("Error while registering card")
+    //   }
+    // })
   }
-
+  
   const handleRegisterCard = async () => {
     if (!scannedCardId || cardError) {
       return
@@ -126,7 +112,7 @@ export default function CardsPage() {
 
     try {
       // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      registerNfcCard()
 
       // Add the new card to the list
       const newCard = {
@@ -146,7 +132,7 @@ export default function CardsPage() {
 
       // Close dialog and reset state
       setIsRegisterDialogOpen(false)
-      setScannedCardId(null)
+      setScannedCardId("")
       setCardError(null)
     } catch (error) {
       toast({
@@ -157,6 +143,47 @@ export default function CardsPage() {
     } finally {
       setIsRegistering(false)
     }
+  }
+  
+  const connectWebsocket = () => {
+    // Connecting to the websocket
+    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_UR || "http://localhost:3001";
+    console.log("Attempting to connect to WebSocket URL:", wsUrl); // <-- Add this log
+    
+    if (!wsUrl) {
+      console.error("WebSocket URL is not defined!");
+      return;
+    }
+    
+    const socket = io(wsUrl, {
+      transports: ["websocket"],
+    });
+
+    socket.on("connect", () => {
+      setIsWsConnected(true);
+      console.log("Connected to websocket");
+    });
+
+    socket.on("disconnect", () => {
+      setIsWsConnected(false);
+      console.log("Disconnected from websocket");
+    });
+
+    socket.on("admin_card_registration", (nfc_id: string) => {
+      setScannedCardId(nfc_id)
+      console.log(`Nfc card with ID: ${nfc_id}!!`)
+    });
+
+    setSocket(socket)
+  }
+
+  const closeWebsocket = (socket: Socket | undefined) => {
+    if (socket) socket.disconnect()
+  }
+
+  const handelRegisterCardScanner = (isOpen: boolean) => {
+    setIsRegisterDialogOpen(isOpen)
+    isOpen ? connectWebsocket() : closeWebsocket(socket)
   }
 
   return (
@@ -169,7 +196,7 @@ export default function CardsPage() {
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
-            <Dialog open={isRegisterDialogOpen} onOpenChange={setIsRegisterDialogOpen}>
+            <Dialog open={isRegisterDialogOpen} onOpenChange={handelRegisterCardScanner}>
               <DialogTrigger asChild>
                 <Button>
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -196,14 +223,6 @@ export default function CardsPage() {
                           ></div>
                           <ContactlessIcon className="w-12 h-12 text-primary relative z-10" />
                         </div>
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={handleScanCard}
-                          disabled={isScanning || isRegistering}
-                        >
-                          {isScanning ? "Scanning..." : "Simulate Card Scan"}
-                        </Button>
                         {scannedCardId && !cardError && (
                           <div className="text-center mt-2">
                             <span className="text-sm text-muted-foreground">New card detected:</span>
@@ -223,7 +242,7 @@ export default function CardsPage() {
                 </div>
 
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsRegisterDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => {setIsRegisterDialogOpen(false); closeWebsocket(socket);}}>
                     Cancel
                   </Button>
                   <Button onClick={handleRegisterCard} disabled={!scannedCardId || !!cardError || isRegistering}>

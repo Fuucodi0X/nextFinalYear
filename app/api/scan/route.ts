@@ -1,29 +1,5 @@
 // Ensure this file is located at: app/api/scan/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { io } from "socket.io-client";
-// import { Server } from 'socket.io';
-
-// Define types for request body and personnel data
-type ScanRequest = {
-  nfc_data: string;
-  device_name: string;
-};
-
-// Mock User Data (replace with actual data fetching/verification)
-type UserData = {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    department: string;
-    position: string;
-    accessLevel: string;
-    location: string;
-    lastScan: string; // Consider making this dynamic
-    photo: string;
-    gate: string;
-};
-
 
 // Named export for the POST HTTP method
 export async function POST(req: NextRequest) {
@@ -32,61 +8,20 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
 
     // Access individual fields
-    const nfc_data = formData.get('nfc_data');
-    const device_name = formData.get('device_data'); // This will be a File object or null
+    const nfc_id = formData.get('nfc_id');
+    const device_id = formData.get('device_id'); // This will be a File object or null
 
     // Basic validation
-    if (!nfc_data || !device_name) {
+    if (!nfc_id || !device_id) {
       return NextResponse.json(
-        { message: 'Missing nfc_data or device_name in request body' },
+        { message: 'Missing nfc_id or device_id in request body' },
         { status: 400 } // Bad Request
       );
     }
 
-    console.log(`Received scan from ${device_name}. NFC Data: ${nfc_data}`); // Log received data
-
-    // --- Personnel Verification Logic ---
-    // Replace this section with your actual verification logic
-    // const verificationResponse = await fetch(
-    //   "https://your-auth-service.com/api/verify-personnel", // Your actual endpoint
-    //   {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" /* Add Auth headers if needed */ },
-    //     body: JSON.stringify({ nfc_data }), // Send necessary data for verification
-    //   }
-    // );
-
-    // if (!verificationResponse.ok) {
-    //   // Handle verification failure (e.g., unauthorized NFC tag)
-    //   console.error(`Verification failed for NFC: ${nfc_data}. Status: ${verificationResponse.status}`);
-    //   return NextResponse.json(
-    //     { message: `Verification failed (status: ${verificationResponse.status})` },
-    //     { status: verificationResponse.status }
-    //   );
-    // }
-    // const personnelData: PersonnelData = await verificationResponse.json();
-    // --- End Personnel Verification Logic ---
-
-
-    // --- Mocked Personnel Data (Using UserData type) ---
-    // Use the fetched 'personnelData' instead of this mock in production
-    const user: UserData = {
-        id: "EMP-1001", // Should come from verification
-        name: "Alex Johnson", // Should come from verification
-        email: "alex.johnson@company.com", // Should come from verification
-        phone: "(555) 123-4567", // Should come from verification
-        department: "Engineering", // Should come from verification
-        position: "Senior Developer", // Should come from verification
-        accessLevel: "Medium", // Should come from verification
-        location: "Building A", // Should come from verification
-        lastScan: new Date().toLocaleTimeString(), // Update dynamically
-        photo: "/placeholder.svg?height=128&width=128", // Use actual photo URL from verification
-        gate: "Gate 1", // Or determine based on device_name/location
-    };
-    // --- End Mocked Data ---
-
+    console.log(`Received scan from ${device_id}. NFC Data: ${nfc_id}`); // Log received data
     // --- Notify the Dedicated WebSocket Server ---
-    const websocketServerInternalUrl = process.env.WEBSOCKET_SERVER_INTERNAL_URL; // e.g., http://localhost:3001/api/internal/broadcast-scan
+    const websocketServerInternalUrl = "http://localhost:3001/api/internal/broadcast-scan"; // e.g., http://localhost:3001/api/internal/broadcast-scan
 
     if (!websocketServerInternalUrl) {
       console.error("[API Route] WEBSOCKET_SERVER_INTERNAL_URL env var not set. Cannot broadcast.");
@@ -96,8 +31,8 @@ export async function POST(req: NextRequest) {
         // Construct the payload EXACTLY as the frontend expects it
         const broadcastPayload = {
           timestamp: new Date().toISOString(),
-          device_name: device_name, // Use the actual device name
-          personnelData: user, // Use the key 'personnelData'
+          device_id: device_id, // Use the actual device name
+          nfc_id: nfc_id, // Use the key 'personnelData'
         };
 
         console.log(`[API Route] Notifying WS Server at ${websocketServerInternalUrl}`);

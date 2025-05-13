@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Download, Search, Filter, CreditCard, Home, Users, Settings } from "lucide-react"
+import { PlusCircle, Download, Search, Filter, CreditCard, Home, Users, Settings, BookOpen } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -52,6 +52,7 @@ const navItems = [
   { href: "/dashboard/admin", label: "Dashboard", icon: Home },
   // { href: "/dashboard/admin/users", label: "Users", icon: Users },
   { href: "/dashboard/admin/cards", label: "Cards", icon: CreditCard },
+  { href: "/dashboard/admin/courses", label: "Courses", icon: BookOpen },
   { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
 ]
 
@@ -101,6 +102,42 @@ export default function CardsPage() {
     //     setCardError("Error while registering card")
     //   }
     // })
+  }
+  
+  const handleScanCard = () => {
+    setIsScanning(true)
+    setCardError(null)
+    setScannedCardId("")
+
+    // Simulate scanning process
+    setTimeout(() => {
+      // Generate a random card ID
+      const newCardId = `CARD-${Math.floor(4000 + Math.random() * 1000)}`
+
+      // Randomly decide if the card is already registered (for demo purposes)
+      const isAlreadyRegistered = Math.random() > 0.7
+
+      if (isAlreadyRegistered) {
+        // Simulate finding an existing card
+        const existingCardId = cards[Math.floor(Math.random() * cards.length)].id
+        setScannedCardId(existingCardId)
+        setCardError(`Card ${existingCardId} is already registered in the system.`)
+        toast({
+          title: "Card Already Registered",
+          description: `Card ${existingCardId} is already registered in the system.`,
+          variant: "destructive",
+        })
+      } else {
+        // New card detected
+        setScannedCardId(newCardId)
+        toast({
+          title: "Card Detected",
+          description: `New card ${newCardId} detected and ready for registration.`,
+        })
+      }
+
+      setIsScanning(false)
+    }, 2000)
   }
   
   const handleRegisterCard = async () => {
@@ -223,6 +260,14 @@ export default function CardsPage() {
                           ></div>
                           <ContactlessIcon className="w-12 h-12 text-primary relative z-10" />
                         </div>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleScanCard}
+                        disabled={isScanning || isRegistering}
+                      >
+                        {isScanning ? "Scanning..." : "Simulate Card Scan"}
+                      </Button>
                         {scannedCardId && !cardError && (
                           <div className="text-center mt-2">
                             <span className="text-sm text-muted-foreground">New card detected:</span>

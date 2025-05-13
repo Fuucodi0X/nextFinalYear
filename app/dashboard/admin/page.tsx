@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Home, Settings, Shield, User, Users, CreditCard, Database } from "lucide-react"
+import { Home, Settings, Shield, User, Users, CreditCard, Database, BookOpen } from "lucide-react"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/dashboard/admin", label: "Dashboard", icon: Home },
   // { href: "/dashboard/admin/users", label: "Users", icon: Users },
   { href: "/dashboard/admin/cards", label: "Cards", icon: CreditCard },
+  { href: "/dashboard/admin/courses", label: "Courses", icon: BookOpen },
   { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
 ]
 
@@ -180,7 +181,7 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="users">
+      <Tabs defaultValue="users" className="mt-6">
         <TabsList>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="registration">User Registration</TabsTrigger>

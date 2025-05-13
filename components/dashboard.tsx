@@ -42,7 +42,7 @@ export default function Dashboard() {
   const [direction, setDirection] = useState<"entry" | "exit">("entry")
   const [registeredItems, setRegisteredItems] = useState<any[]>([])
   const [connected, setConnected] = useState(false);
-  const {loading, error, data} = useQuery(GET_USERS)
+  // const {loading, error, data} = useQuery(GET_USERS)
 
   useEffect(() => {
     // Connecting to the websocket

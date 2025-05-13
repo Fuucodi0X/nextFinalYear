@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CreditCard, Home, Settings, User, Users } from "lucide-react"
+import { BookOpen, CreditCard, Home, Settings, User, Users } from "lucide-react"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +16,7 @@ const navItems = [
   { href: "/dashboard/admin", label: "Dashboard", icon: Home },
   // { href: "/dashboard/admin/users", label: "Users", icon: Users },
   { href: "/dashboard/admin/cards", label: "Cards", icon: CreditCard },
+  { href: "/dashboard/admin/courses", label: "Courses", icon: BookOpen },
   { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
 ]
 

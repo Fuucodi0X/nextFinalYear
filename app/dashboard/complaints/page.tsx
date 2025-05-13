@@ -1,7 +1,5 @@
 "use client"
 
-import { Label } from "@/components/ui/label"
-
 import { useState } from "react"
 import {
   AlertTriangle,
@@ -13,7 +11,6 @@ import {
   Search,
   Settings,
   Shield,
-  User,
   Users,
 } from "lucide-react"
 
@@ -21,7 +18,6 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CardScanner } from "@/components/card-scanner"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +34,7 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { Label } from "@/components/ui/label"
 
 const navItems = [
   { href: "/dashboard/complaints", label: "Dashboard", icon: Home },
@@ -108,6 +105,36 @@ const mockComplaints = [
     status: "pending",
     timestamp: "2023-05-12T12:10:00Z",
   },
+  {
+    id: "COMP-1006",
+    userId: "STU-1004",
+    userName: "Jessica Lee",
+    userPhoto: "/placeholder.svg?height=128&width=128",
+    source: "library",
+    type: "behavior",
+    description: "Disruptive behavior in quiet study area. Student was talking loudly on phone.",
+    severity: "medium",
+    status: "processed",
+    resolution: "warning",
+    resolutionNotes: "First offense, verbal warning issued.",
+    resolutionDate: "2023-05-01T10:30:00Z",
+    timestamp: "2023-05-01T09:15:00Z",
+  },
+  {
+    id: "COMP-1007",
+    userId: "STU-1005",
+    userName: "David Wilson",
+    userPhoto: "/placeholder.svg?height=128&width=128",
+    source: "dormitory",
+    type: "property-damage",
+    description: "Graffiti found on dormitory wall. Student caught on security camera.",
+    severity: "high",
+    status: "processed",
+    resolution: "suspension",
+    resolutionNotes: "Two-week suspension from dormitory privileges.",
+    resolutionDate: "2023-04-28T14:20:00Z",
+    timestamp: "2023-04-27T22:40:00Z",
+  },
 ]
 
 // Mock user data
@@ -171,7 +198,7 @@ export default function ComplaintsDashboardPage() {
   const [activeUser, setActiveUser] = useState<any>(null)
   const [complaints, setComplaints] = useState<any[]>(mockComplaints)
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedTab, setSelectedTab] = useState("all")
+  const [selectedTab, setSelectedTab] = useState("pending")
   const [showActionDialog, setShowActionDialog] = useState(false)
   const [selectedComplaint, setSelectedComplaint] = useState<any>(null)
   const [actionType, setActionType] = useState<"warning" | "suspension" | "dismiss">("warning")
@@ -263,299 +290,125 @@ export default function ComplaintsDashboardPage() {
   // Get user-specific complaints
   const userComplaints = activeUser ? complaints.filter((complaint) => complaint.userId === activeUser.id) : []
 
+  // Get pending complaints for the main dashboard
+  const pendingComplaints = complaints.filter((complaint) => complaint.status === "pending" || !complaint.status)
+
   return (
     <DashboardLayout navItems={navItems} title="Complaints Management" icon={FileWarning}>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="col-span-full">
-          <CardHeader className="flex flex-row items-center">
-            <div className="grid gap-0.5">
-              <CardTitle className="text-xl">Complaints Management Dashboard</CardTitle>
-              <CardDescription>Process and manage complaints from various departments</CardDescription>
-            </div>
-            <div className="ml-auto">
+      <div className="grid gap-6">
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Complaints</CardTitle>
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{complaints.length}</div>
+              <p className="text-xs text-muted-foreground">+3 new today</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {complaints.filter((c) => c.status === "pending" || !c.status).length}
+              </div>
+              <p className="text-xs text-muted-foreground">Requires attention</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Warnings Issued</CardTitle>
+              <Shield className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{complaints.filter((c) => c.resolution === "warning").length}</div>
+              <p className="text-xs text-muted-foreground">This month</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Suspensions</CardTitle>
+              <Ban className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{complaints.filter((c) => c.resolution === "suspension").length}</div>
+              <p className="text-xs text-muted-foreground">This month</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Card Scanner Section */}
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle>ID Card Scanner</CardTitle>
+              <CardDescription>Scan a user's ID card to view their details and complaints</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center">
               <CardScanner onCardScanned={handleScan} />
-            </div>
-          </CardHeader>
-        </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Complaints</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{complaints.length}</div>
-            <p className="text-xs text-muted-foreground">+3 new today</p>
-          </CardContent>
-        </Card>
+              {activeUser && (
+                <div className="mt-4 w-full rounded-lg bg-muted p-3 text-center">
+                  <p className="font-medium">{activeUser.name}</p>
+                  <p className="text-sm text-muted-foreground">{activeUser.id}</p>
+                  <Badge variant={activeUser.status === "active" ? "outline" : "destructive"} className="mt-2">
+                    {activeUser.status.charAt(0).toUpperCase() + activeUser.status.slice(1)}
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {complaints.filter((c) => c.status === "pending" || !c.status).length}
-            </div>
-            <p className="text-xs text-muted-foreground">Requires attention</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Warnings Issued</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{complaints.filter((c) => c.resolution === "warning").length}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Suspensions</CardTitle>
-            <Ban className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{complaints.filter((c) => c.resolution === "suspension").length}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="all" onValueChange={setSelectedTab}>
-        <div className="flex items-center">
-          <TabsList>
-            <TabsTrigger value="all">All Complaints</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="processed">Processed</TabsTrigger>
-            <TabsTrigger value="dismissed">Dismissed</TabsTrigger>
-          </TabsList>
-          {activeUser && (
-            <div className="ml-auto flex items-center gap-2 rounded-lg bg-muted px-3 py-1">
-              <User className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Active user: {activeUser.name}</span>
-              <Badge variant="outline" className="ml-2">
-                {activeUser.id}
-              </Badge>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4 flex w-full items-center space-x-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search complaints..."
-            className="flex-1"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <TabsContent value={selectedTab} className="mt-4">
-          {activeUser ? (
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Information</CardTitle>
-                  <CardDescription>Details and complaint history for {activeUser.name}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={activeUser.photo || "/placeholder.svg"} alt={activeUser.name} />
-                      <AvatarFallback>{activeUser.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-medium">{activeUser.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {activeUser.department} - {activeUser.position}
-                      </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge variant={activeUser.status === "active" ? "outline" : "destructive"}>
-                          {activeUser.status.charAt(0).toUpperCase() + activeUser.status.slice(1)}
-                        </Badge>
-                        {activeUser.warningCount > 0 && (
-                          <Badge variant="secondary">
-                            {activeUser.warningCount} Warning{activeUser.warningCount > 1 ? "s" : ""}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Contact Information</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Email</p>
-                        <p>{activeUser.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Phone</p>
-                        <p>{activeUser.phone}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">ID</p>
-                        <p>{activeUser.id}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Access Level</p>
-                        <p>{activeUser.accessLevel}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Disciplinary Record</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="rounded-lg border p-3 text-center">
-                        <p className="text-2xl font-bold">{activeUser.warningCount}</p>
-                        <p className="text-sm text-muted-foreground">Warnings</p>
-                      </div>
-                      <div className="rounded-lg border p-3 text-center">
-                        <p className="text-2xl font-bold">{activeUser.suspensionCount}</p>
-                        <p className="text-sm text-muted-foreground">Suspensions</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Complaint History</CardTitle>
-                  <CardDescription>
-                    {userComplaints.length > 0
-                      ? `${userComplaints.length} complaint(s) on record`
-                      : "No complaints on record"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {userComplaints.length > 0 ? (
-                    <ScrollArea className="h-[400px] pr-4">
-                      <div className="space-y-4">
-                        {userComplaints.map((complaint) => (
-                          <div key={complaint.id} className="rounded-lg border p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <Badge
-                                variant={
-                                  complaint.severity === "high"
-                                    ? "destructive"
-                                    : complaint.severity === "medium"
-                                      ? "default"
-                                      : "outline"
-                                }
-                              >
-                                {complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1)} Severity
-                              </Badge>
-                              <Badge variant="outline" className="capitalize">
-                                {complaint.source}
-                              </Badge>
+          {/* Pending Complaints Section */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Pending Complaints</CardTitle>
+              <CardDescription>
+                {pendingComplaints.length} complaint{pendingComplaints.length !== 1 ? "s" : ""} requiring attention
+              </CardDescription>
+              <div className="mt-2 flex items-center gap-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search complaints..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-4">
+                  {pendingComplaints
+                    .filter(
+                      (complaint) =>
+                        searchQuery === "" ||
+                        complaint.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        complaint.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        complaint.type.toLowerCase().includes(searchQuery.toLowerCase()),
+                    )
+                    .map((complaint) => (
+                      <div key={complaint.id} className="rounded-lg border p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={complaint.userPhoto || "/placeholder.svg"} alt={complaint.userName} />
+                              <AvatarFallback>{complaint.userName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{complaint.userName}</p>
+                              <p className="text-xs text-muted-foreground">{complaint.userId}</p>
                             </div>
-
-                            <h4 className="font-medium capitalize">{complaint.type.replace(/-/g, " ")} Issue</h4>
-
-                            <p className="mt-2 text-sm">{complaint.description}</p>
-
-                            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                              <span>
-                                {new Date(complaint.timestamp).toLocaleDateString()} at{" "}
-                                {new Date(complaint.timestamp).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                              <Badge
-                                variant={
-                                  complaint.status === "processed"
-                                    ? "default"
-                                    : complaint.status === "dismissed"
-                                      ? "secondary"
-                                      : "outline"
-                                }
-                              >
-                                {complaint.status || "Pending"}
-                              </Badge>
-                            </div>
-
-                            {complaint.status === "pending" && (
-                              <div className="mt-4 flex items-center justify-end gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleComplaintAction(complaint, "dismiss")}
-                                >
-                                  Dismiss
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleComplaintAction(complaint, "warning")}
-                                >
-                                  Issue Warning
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleComplaintAction(complaint, "suspension")}
-                                >
-                                  Suspend
-                                </Button>
-                              </div>
-                            )}
-
-                            {complaint.resolution && (
-                              <div className="mt-3 rounded-lg bg-muted p-3">
-                                <p className="text-sm font-medium capitalize">{complaint.resolution} Issued</p>
-                                {complaint.resolutionNotes && (
-                                  <p className="mt-1 text-sm">{complaint.resolutionNotes}</p>
-                                )}
-                                {complaint.resolutionDate && (
-                                  <p className="mt-1 text-xs text-muted-foreground">
-                                    {new Date(complaint.resolutionDate).toLocaleDateString()}
-                                  </p>
-                                )}
-                              </div>
-                            )}
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-[300px] text-center">
-                      <Check className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="font-medium mb-1">No Complaints Found</h3>
-                      <p className="text-sm text-muted-foreground">This user has a clean record with no complaints</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredComplaints.length > 0 ? (
-                filteredComplaints.map((complaint) => (
-                  <Card key={complaint.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={complaint.userPhoto || "/placeholder.svg"} alt={complaint.userName} />
-                            <AvatarFallback>{complaint.userName.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h3 className="font-medium">{complaint.userName}</h3>
-                            <p className="text-xs text-muted-foreground">{complaint.userId}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
                           <Badge
                             variant={
                               complaint.severity === "high"
@@ -567,69 +420,261 @@ export default function ComplaintsDashboardPage() {
                           >
                             {complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1)}
                           </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-2">
                           <Badge variant="outline" className="capitalize">
                             {complaint.source}
                           </Badge>
+                          <Badge variant="secondary" className="capitalize">
+                            {complaint.type.replace(/-/g, " ")}
+                          </Badge>
+                        </div>
+
+                        <p className="text-sm">{complaint.description}</p>
+
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(complaint.timestamp).toLocaleDateString()} at{" "}
+                            {new Date(complaint.timestamp).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleComplaintAction(complaint, "dismiss")}
+                            >
+                              Dismiss
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleComplaintAction(complaint, "warning")}
+                            >
+                              Warning
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleComplaintAction(complaint, "suspension")}
+                            >
+                              Suspend
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <h4 className="font-medium capitalize mb-1">{complaint.type.replace(/-/g, " ")} Issue</h4>
-                      <p className="text-sm">{complaint.description}</p>
-                      <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                        <span>
-                          {new Date(complaint.timestamp).toLocaleDateString()} at{" "}
-                          {new Date(complaint.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                        <Badge
-                          variant={
-                            complaint.status === "processed"
-                              ? "default"
-                              : complaint.status === "dismissed"
-                                ? "secondary"
-                                : "outline"
-                          }
-                        >
-                          {complaint.status || "Pending"}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                    {complaint.status === "pending" && (
-                      <div className="px-6 pb-4 flex items-center justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleComplaintAction(complaint, "dismiss")}>
-                          Dismiss
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleComplaintAction(complaint, "warning")}>
-                          Issue Warning
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleComplaintAction(complaint, "suspension")}
-                        >
-                          Suspend
-                        </Button>
-                      </div>
-                    )}
-                  </Card>
-                ))
-              ) : (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center h-[300px] text-center">
-                    <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="font-medium mb-1">No Complaints Found</h3>
+                    ))}
+
+                  {pendingComplaints.filter(
+                    (complaint) =>
+                      searchQuery === "" ||
+                      complaint.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      complaint.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      complaint.type.toLowerCase().includes(searchQuery.toLowerCase()),
+                  ).length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Check className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="font-medium mb-1">No Pending Complaints</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {searchQuery
+                          ? "No complaints match your search criteria"
+                          : "All complaints have been processed"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* User Details Section - Only shown when a user is active */}
+        {activeUser && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Information</CardTitle>
+                <CardDescription>Details for {activeUser.name}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={activeUser.photo || "/placeholder.svg"} alt={activeUser.name} />
+                    <AvatarFallback>{activeUser.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-medium">{activeUser.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {searchQuery
-                        ? "No complaints match your search criteria"
-                        : "There are no complaints in this category"}
+                      {activeUser.department} - {activeUser.position}
                     </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge variant={activeUser.status === "active" ? "outline" : "destructive"}>
+                        {activeUser.status.charAt(0).toUpperCase() + activeUser.status.slice(1)}
+                      </Badge>
+                      {activeUser.warningCount > 0 && (
+                        <Badge variant="secondary">
+                          {activeUser.warningCount} Warning{activeUser.warningCount > 1 ? "s" : ""}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <h4 className="font-medium">Contact Information</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Email</p>
+                      <p>{activeUser.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Phone</p>
+                      <p>{activeUser.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">ID</p>
+                      <p>{activeUser.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Access Level</p>
+                      <p>{activeUser.accessLevel}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <h4 className="font-medium">Disciplinary Record</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-lg border p-3 text-center">
+                      <p className="text-2xl font-bold">{activeUser.warningCount}</p>
+                      <p className="text-sm text-muted-foreground">Warnings</p>
+                    </div>
+                    <div className="rounded-lg border p-3 text-center">
+                      <p className="text-2xl font-bold">{activeUser.suspensionCount}</p>
+                      <p className="text-sm text-muted-foreground">Suspensions</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Complaint History</CardTitle>
+                <CardDescription>
+                  {userComplaints.length > 0
+                    ? `${userComplaints.length} complaint(s) on record`
+                    : "No complaints on record"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {userComplaints.length > 0 ? (
+                  <ScrollArea className="h-[400px] pr-4">
+                    <div className="space-y-4">
+                      {userComplaints.map((complaint) => (
+                        <div key={complaint.id} className="rounded-lg border p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge
+                              variant={
+                                complaint.severity === "high"
+                                  ? "destructive"
+                                  : complaint.severity === "medium"
+                                    ? "default"
+                                    : "outline"
+                              }
+                            >
+                              {complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1)} Severity
+                            </Badge>
+                            <Badge variant="outline" className="capitalize">
+                              {complaint.source}
+                            </Badge>
+                          </div>
+
+                          <h4 className="font-medium capitalize">{complaint.type.replace(/-/g, " ")} Issue</h4>
+
+                          <p className="mt-2 text-sm">{complaint.description}</p>
+
+                          <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                            <span>
+                              {new Date(complaint.timestamp).toLocaleDateString()} at{" "}
+                              {new Date(complaint.timestamp).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                            <Badge
+                              variant={
+                                complaint.status === "processed"
+                                  ? "default"
+                                  : complaint.status === "dismissed"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                            >
+                              {complaint.status || "Pending"}
+                            </Badge>
+                          </div>
+
+                          {complaint.status === "pending" && (
+                            <div className="mt-4 flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleComplaintAction(complaint, "dismiss")}
+                              >
+                                Dismiss
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleComplaintAction(complaint, "warning")}
+                              >
+                                Issue Warning
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleComplaintAction(complaint, "suspension")}
+                              >
+                                Suspend
+                              </Button>
+                            </div>
+                          )}
+
+                          {complaint.resolution && (
+                            <div className="mt-3 rounded-lg bg-muted p-3">
+                              <p className="text-sm font-medium capitalize">{complaint.resolution} Issued</p>
+                              {complaint.resolutionNotes && <p className="mt-1 text-sm">{complaint.resolutionNotes}</p>}
+                              {complaint.resolutionDate && (
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {new Date(complaint.resolutionDate).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[300px] text-center">
+                    <Check className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="font-medium mb-1">No Complaints Found</h3>
+                    <p className="text-sm text-muted-foreground">This user has a clean record with no complaints</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
 
       <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
         <DialogContent>

@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { mockUsers } from "@/components/card-scanner"
+import { mockUsers } from "@/components/card-simulator"
 
 const navItems = [
   { href: "/dashboard/dormitory", label: "Dashboard", icon: Home },

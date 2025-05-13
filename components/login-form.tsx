@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Shield, User, Lock } from "lucide-react"
+import { User, Lock, CreditCard } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -93,9 +93,9 @@ export default function LoginForm() {
     <Card className="w-full">
       <CardHeader className="space-y-1">
         <div className="flex items-center justify-center mb-2">
-          <Shield className="h-10 w-10 text-primary" />
+          <CreditCard className="h-10 w-10 text-primary" />
         </div>
-        <CardTitle className="text-2xl text-center">Security Dashboard</CardTitle>
+        <CardTitle className="text-2xl text-center">LogIn</CardTitle>
         <CardDescription className="text-center">NFC card system for multipurpose</CardDescription>
       </CardHeader>
       <Tabs defaultValue="credentials" className="w-full">

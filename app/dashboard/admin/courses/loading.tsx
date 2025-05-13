@@ -1,3 +1,5 @@
+"use client"
+
 import { CardFooter } from "@/components/ui/card"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Skeleton } from "@/components/ui/skeleton"

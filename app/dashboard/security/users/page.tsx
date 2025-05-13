@@ -10,9 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   DropdownMenu,
-  Dropdown  CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -22,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { mockUsers } from "@/components/card-scanner"
+import { mockUsers } from "@/components/card-simulator"
 
 const navItems = [
   { href: "/dashboard/security", label: "Dashboard", icon: Home },

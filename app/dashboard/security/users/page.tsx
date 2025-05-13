@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowUpDown, Download, Home, MoreHorizontal, Search, Settings, Shield, Users } from 'lucide-react'
+import { ArrowUpDown, Download, Home, MoreHorizontal, Search, Settings, Users } from 'lucide-react'
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -47,7 +47,7 @@ export default function SecurityUsersPage() {
   })
 
   return (
-    <DashboardLayout navItems={navItems} title="Personnel Management" icon={Shield}>
+    <DashboardLayout navItems={navItems} title="Personnel Management" icon={Users} showBackButton={true}>
       <Card>
         <CardHeader>
           <CardTitle>Personnel Directory</CardTitle>

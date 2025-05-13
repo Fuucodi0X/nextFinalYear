@@ -39,7 +39,7 @@ export default function SecuritySettingsPage() {
   }
 
   return (
-    <DashboardLayout navItems={navItems} title="Security Settings" icon={Shield}>
+    <DashboardLayout navItems={navItems} title="Security Settings" icon={Settings} showBackButton={true}>
       <Tabs defaultValue="general">
         <div className="flex items-center justify-between">
           <TabsList>

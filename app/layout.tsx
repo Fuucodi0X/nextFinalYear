@@ -1,28 +1,31 @@
+"use client"
+
 import type React from "react"
 import "./globals.css"
-import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
+import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata: Metadata = {
-  title: "SecureGate - NFC Card System",
-  description: "NFC card system for multipurpose",
-    generator: 'v0.dev'
-}
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const client = new ApolloClient({
+    ssrMode: true,
+    uri: 'https://massive-worm-1767.ddn.hasura.app/graphql',
+    cache: new InMemoryCache(),
+  });
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider><ApolloProvider client={client}>{children}</ApolloProvider></AuthProvider>
         </ThemeProvider>
       </body>
     </html>

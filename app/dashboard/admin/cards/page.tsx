@@ -57,13 +57,14 @@ const navItems = [
 ]
 
 // Queries and Mutations
-// const ADD_NFC = gql`
-//   mutation AddNfc($nfc_id: String!) {
-//     addNfc(nfc_id: $nfc_id){
-//       affected_rows
-//     }
-//   }
-// `;
+const ADD_NFC = gql`mutation registerCard($nfcId: Text!) {
+  insertNfcCards(objects: {nfcId: $nfcId}) {
+    data: returning {
+      id
+      nfcId
+    }
+  }
+}`
 
 export default function CardsPage() {
   const { toast } = useToast()
@@ -76,7 +77,7 @@ export default function CardsPage() {
   const [isRegistering, setIsRegistering] = useState(false)
   const [isWsConnected, setIsWsConnected] = useState(false)
   const [socket, setSocket] = useState<Socket | undefined>(undefined)
-  // const [addCard, { data, loading, error}] = useMutation(ADD_NFC)
+  const [addCard, { data, loading, error}] = useMutation(ADD_NFC)
 
   // Filter cards based on search query
   const filteredCards = cards.filter((card) => {
@@ -97,49 +98,18 @@ export default function CardsPage() {
   const inactiveCards = cards.filter((card) => card.status === "Inactive").length
 
   const registerNfcCard = () => {
-    // addCard({ variables: { type: scannedCardId } }).then(() => {
-    //   if (!error) {
-    //     setCardError("Error while registering card")
-    //   }
-    // })
-  }
-  
-  const handleScanCard = () => {
-    setIsScanning(true)
-    setCardError(null)
-    setScannedCardId("")
-
-    // Simulate scanning process
-    setTimeout(() => {
-      // Generate a random card ID
-      const newCardId = `CARD-${Math.floor(4000 + Math.random() * 1000)}`
-
-      // Randomly decide if the card is already registered (for demo purposes)
-      const isAlreadyRegistered = Math.random() > 0.7
-
-      if (isAlreadyRegistered) {
-        // Simulate finding an existing card
-        const existingCardId = cards[Math.floor(Math.random() * cards.length)].id
-        setScannedCardId(existingCardId)
-        setCardError(`Card ${existingCardId} is already registered in the system.`)
-        toast({
-          title: "Card Already Registered",
-          description: `Card ${existingCardId} is already registered in the system.`,
-          variant: "destructive",
-        })
-      } else {
-        // New card detected
-        setScannedCardId(newCardId)
-        toast({
-          title: "Card Detected",
-          description: `New card ${newCardId} detected and ready for registration.`,
-        })
+    const err = addCard({ variables: { nfcId: scannedCardId } }).then(() => {
+      return error
+    }).finally( () => {
+      if (error) {
+        setCardError(error.message)
+        console.log("Error: ", error?.message)
       }
-
-      setIsScanning(false)
-    }, 2000)
+    }
+    )
+    return err
   }
-  
+    
   const handleRegisterCard = async () => {
     if (!scannedCardId || cardError) {
       return
@@ -148,9 +118,9 @@ export default function CardsPage() {
     setIsRegistering(true)
 
     try {
-      // Simulate API delay
-      registerNfcCard()
-
+      // Backend card registration
+      const err = await registerNfcCard()
+      
       // Add the new card to the list
       const newCard = {
         id: scannedCardId,
@@ -168,9 +138,11 @@ export default function CardsPage() {
       })
 
       // Close dialog and reset state
-      setIsRegisterDialogOpen(false)
-      setScannedCardId("")
-      setCardError(null)
+      if(!err) {
+        setIsRegisterDialogOpen(false)
+        setScannedCardId("")
+        setCardError(null)
+      }
     } catch (error) {
       toast({
         title: "Registration Failed",
@@ -184,7 +156,7 @@ export default function CardsPage() {
   
   const connectWebsocket = () => {
     // Connecting to the websocket
-    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_UR || "http://localhost:3001";
+    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3001";
     console.log("Attempting to connect to WebSocket URL:", wsUrl); // <-- Add this log
     
     if (!wsUrl) {
@@ -208,6 +180,7 @@ export default function CardsPage() {
 
     socket.on("admin_card_registration", (nfc_id: string) => {
       setScannedCardId(nfc_id)
+      setCardError(null)
       console.log(`Nfc card with ID: ${nfc_id}!!`)
     });
 
@@ -260,14 +233,6 @@ export default function CardsPage() {
                           ></div>
                           <ContactlessIcon className="w-12 h-12 text-primary relative z-10" />
                         </div>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleScanCard}
-                        disabled={isScanning || isRegistering}
-                      >
-                        {isScanning ? "Scanning..." : "Simulate Card Scan"}
-                      </Button>
                         {scannedCardId && !cardError && (
                           <div className="text-center mt-2">
                             <span className="text-sm text-muted-foreground">New card detected:</span>

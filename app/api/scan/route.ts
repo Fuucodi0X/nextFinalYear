@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`Received scan from ${device_id}. NFC Data: ${nfc_id}`); // Log received data
     // --- Notify the Dedicated WebSocket Server ---
-    const websocketServerInternalUrl = "http://localhost:3001/api/internal/broadcast-scan"; // e.g., http://localhost:3001/api/internal/broadcast-scan
+    const websocketServerInternalUrl = process.env.WEBSOCKET_SERVER_INTERNAL_URL || "http://localhost:3001/api/internal/broadcast-scan"; // e.g., http://localhost:3001/api/internal/broadcast-scan
 
     if (!websocketServerInternalUrl) {
       console.error("[API Route] WEBSOCKET_SERVER_INTERNAL_URL env var not set. Cannot broadcast.");

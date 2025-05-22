@@ -15,10 +15,12 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  */
 type Documents = {
     "mutation registerCard($nfcId: Text!) {\n  insertNfcCards(objects: {nfcId: $nfcId}) {\n    data: returning {\n      id\n      nfcId\n    }\n  }\n}": typeof types.RegisterCardDocument,
+    "query registerdCards {\n  nfcCards {\n    id\n    nfcId\n    count: assignedCardsAggregate{\n      num: _count\n    }\n    assignedCards{\n      user {\n        name\n\t\t\t\temail\n        avatar\n        role\n      }\n    }\n  }\n  nfcCardsCount: nfcCardsAggregate{\n    num: _count\n  }\n  assignedCardsCount: assignedCardsAggregate{\n    num: _count\n  }\n}": typeof types.RegisterdCardsDocument,
     "\n  query Users {\n    users {\n      id\n      name\n    }\n  }\n": typeof types.UsersDocument,
 };
 const documents: Documents = {
     "mutation registerCard($nfcId: Text!) {\n  insertNfcCards(objects: {nfcId: $nfcId}) {\n    data: returning {\n      id\n      nfcId\n    }\n  }\n}": types.RegisterCardDocument,
+    "query registerdCards {\n  nfcCards {\n    id\n    nfcId\n    count: assignedCardsAggregate{\n      num: _count\n    }\n    assignedCards{\n      user {\n        name\n\t\t\t\temail\n        avatar\n        role\n      }\n    }\n  }\n  nfcCardsCount: nfcCardsAggregate{\n    num: _count\n  }\n  assignedCardsCount: assignedCardsAggregate{\n    num: _count\n  }\n}": types.RegisterdCardsDocument,
     "\n  query Users {\n    users {\n      id\n      name\n    }\n  }\n": types.UsersDocument,
 };
 
@@ -40,6 +42,10 @@ export function graphql(source: string): unknown;
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "mutation registerCard($nfcId: Text!) {\n  insertNfcCards(objects: {nfcId: $nfcId}) {\n    data: returning {\n      id\n      nfcId\n    }\n  }\n}"): (typeof documents)["mutation registerCard($nfcId: Text!) {\n  insertNfcCards(objects: {nfcId: $nfcId}) {\n    data: returning {\n      id\n      nfcId\n    }\n  }\n}"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "query registerdCards {\n  nfcCards {\n    id\n    nfcId\n    count: assignedCardsAggregate{\n      num: _count\n    }\n    assignedCards{\n      user {\n        name\n\t\t\t\temail\n        avatar\n        role\n      }\n    }\n  }\n  nfcCardsCount: nfcCardsAggregate{\n    num: _count\n  }\n  assignedCardsCount: assignedCardsAggregate{\n    num: _count\n  }\n}"): (typeof documents)["query registerdCards {\n  nfcCards {\n    id\n    nfcId\n    count: assignedCardsAggregate{\n      num: _count\n    }\n    assignedCards{\n      user {\n        name\n\t\t\t\temail\n        avatar\n        role\n      }\n    }\n  }\n  nfcCardsCount: nfcCardsAggregate{\n    num: _count\n  }\n  assignedCardsCount: assignedCardsAggregate{\n    num: _count\n  }\n}"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

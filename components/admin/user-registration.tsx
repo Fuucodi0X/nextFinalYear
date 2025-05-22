@@ -22,7 +22,6 @@ export function UserRegistration({ onSubmit }: UserRegistrationProps) {
     name: "",
     email: "",
     role: "",
-    department: "",
     phone: "",
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -57,7 +56,6 @@ export function UserRegistration({ onSubmit }: UserRegistrationProps) {
         name: "",
         email: "",
         role: "",
-        department: "",
         phone: "",
       })
 
@@ -123,48 +121,24 @@ export function UserRegistration({ onSubmit }: UserRegistrationProps) {
                   <SelectItem value="dormitory">Dormitory Manager</SelectItem>
                   <SelectItem value="cafe">Cafe Manager</SelectItem>
                   <SelectItem value="library">Librarian</SelectItem>
-                  <SelectItem value="faculty">Faculty</SelectItem>
                   <SelectItem value="student">Student</SelectItem>
                   <SelectItem value="complaints">Complaint Officer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) => handleSelectChange("department", value)}
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                name="phone"
+                placeholder="9 3804 5797"
+                value={formData.phone}
+                onChange={handleChange}
                 required
-              >
-                <SelectTrigger id="department">
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Administration">Administration</SelectItem>
-                  <SelectItem value="Security">Security</SelectItem>
-                  <SelectItem value="Housing">Housing</SelectItem>
-                  <SelectItem value="Food Services">Food Services</SelectItem>
-                  <SelectItem value="Library">Library</SelectItem>
-                  <SelectItem value="Computer Science">Computer Science</SelectItem>
-                  <SelectItem value="Engineering">Engineering</SelectItem>
-                  <SelectItem value="Business">Business</SelectItem>
-                  <SelectItem value="Arts">Arts</SelectItem>
-                  <SelectItem value="Sciences">Sciences</SelectItem>
-                </SelectContent>
-              </Select>
+              />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number (Optional)</Label>
-            <Input
-              id="phone"
-              name="phone"
-              placeholder="(555) 123-4567"
-              value={formData.phone}
-              onChange={handleChange}
-            />
-          </div>
         </CardContent>
         <CardFooter>
           <Button type="submit" className="w-full" disabled={isLoading}>

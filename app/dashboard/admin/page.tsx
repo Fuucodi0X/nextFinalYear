@@ -10,14 +10,44 @@ import { UserRegistration } from "@/components/admin/user-registration"
 import { CardAssignment } from "@/components/admin/card-assignment"
 import { UserManagement } from "@/components/admin/user-management"
 import { useToast } from "@/hooks/use-toast"
+import { gql, useMutation, useQuery } from "@apollo/client"
+import Loading from "@/components/ui/loading"
 
 const navItems = [
   { href: "/dashboard/admin", label: "Dashboard", icon: Home },
   // { href: "/dashboard/admin/users", label: "Users", icon: Users },
   { href: "/dashboard/admin/cards", label: "Cards", icon: CreditCard },
   { href: "/dashboard/admin/courses", label: "Courses", icon: BookOpen },
-  { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
+  // { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
 ]
+
+type FormData = {
+  name: string
+  email: string
+  role: string
+  phone: string
+}
+
+const ADD_USER = gql`mutation addUser($email: Varchar!, $name: Text!, $phoneNum: Int4!, $role: Varchar! ) {
+  insertUsers(objects: {email: $email, name: $name, phoneNumber: $phoneNum, role: $role}) {
+    affectedRows
+  }
+}`
+
+const GET_USERS = gql`query users {
+  users {
+    id
+    name
+    avatar
+    email
+  }
+  nfcCardsCount: nfcCardsAggregate{
+    num: _count
+  }
+  assignedCardsCount: assignedCardsAggregate{
+    num: _count
+  }
+}`
 
 export default function AdminDashboardPage() {
   const { toast } = useToast()
@@ -59,8 +89,29 @@ export default function AdminDashboardPage() {
     { id: "CARD-2002", status: "unassigned" },
     { id: "CARD-2003", status: "unassigned" },
   ])
+  const [formData, setFormData] = useState<FormData | null>(null)
+  const {data: userData, loading: getUsersLoading, error: getUsersError, refetch: refetchUsers} = useQuery(GET_USERS)
+  const [addUser, {loading: addingUser, error: addUserError}] = useMutation(ADD_USER)
 
-  const handleUserRegistration = (userData: any) => {
+  // Load users
+  if(getUsersLoading) return <Loading />
+  console.log("userData: ", userData)
+  
+  const registerUser = () => {
+    const err = addUser({ variables: { email: formData?.email, name: formData?.name, phoneNum: formData?.phone, role: formData?.role } }).then(() => {
+      return addUserError
+    }).finally( () => {
+      if (addUserError) {
+        // setCardError(addUserError.message)
+        console.log("Error: ", addUserError?.message)
+      }
+    }
+    )
+    return err
+  }
+
+  const handleUserRegistration = (userData: FormData) => {
+    setFormData(userData)
     const newUser = {
       id: `USER-${Date.now()}`,
       ...userData,
@@ -142,7 +193,7 @@ export default function AdminDashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
+            <div className="text-2xl font-bold">{userData.users.length}</div>
             <p className="text-xs text-muted-foreground">Across all departments</p>
           </CardContent>
         </Card>
@@ -153,7 +204,7 @@ export default function AdminDashboardPage() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{unassignedCards.length}</div>
+            <div className="text-2xl font-bold">{userData.nfcCardsCount.num - userData.assignedCardsCount.num}</div>
             <p className="text-xs text-muted-foreground">Available for assignment</p>
           </CardContent>
         </Card>
@@ -168,29 +219,13 @@ export default function AdminDashboardPage() {
             <p className="text-xs text-muted-foreground">Admin, Security, Dormitory, Cafe, Library, Complaints</p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Database Status</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">Online</div>
-            <p className="text-xs text-muted-foreground">Last backup: 2 hours ago</p>
-          </CardContent>
-        </Card>
       </div>
 
-      <Tabs defaultValue="users" className="mt-6">
+      <Tabs defaultValue="registration" className="mt-6">
         <TabsList>
-          <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="registration">User Registration</TabsTrigger>
           <TabsTrigger value="cards">Card Assignment</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="users">
-          <UserManagement users={users} onUpdate={handleUserUpdate} onDelete={handleUserDelete} />
-        </TabsContent>
 
         <TabsContent value="registration">
           <UserRegistration onSubmit={handleUserRegistration} />

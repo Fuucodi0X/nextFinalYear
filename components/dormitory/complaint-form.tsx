@@ -15,14 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { UserType } from "@/lib/types"
 
 interface DormitoryComplaintFormProps {
-  user: {
-    id: string
-    name: string
-    dormitory: string
-    photo: string
-  }
+  user: UserType
   onSubmit: (complaint: any) => void
   complaints: any[]
 }
@@ -70,12 +66,12 @@ export function DormitoryComplaintForm({ user, onSubmit, complaints }: Dormitory
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4 mb-2">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user.photo || "/placeholder.svg"} alt={user.name} />
+                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div>
                 <h3 className="font-medium">{user.name}</h3>
-                <p className="text-sm text-muted-foreground">{user.dormitory}</p>
+                <p className="text-sm text-muted-foreground">{user.assignedDormitories[0] ? user.assignedDormitories[0].dormitoryRoom.roomNumber : ""}</p>
               </div>
             </div>
 

@@ -44,6 +44,8 @@ export default function DormitoryDashboardPage() {
             role
             complaines {
               description
+              severity
+              type:complaintType
             }
             assignedDormitories {
               dormId
@@ -170,6 +172,10 @@ export default function DormitoryDashboardPage() {
         console.log(userData.assignedDormitories[0].status)
         setKeyStatus(userData.assignedDormitories[0].status ? "issued" : "not_issued")
       }
+      if (userData.complaines) {
+        setComplaints(prev => [...prev, userData.complaines[0]])
+      }
+
       console.log(userData)
       handleScan(userData)
       toast({

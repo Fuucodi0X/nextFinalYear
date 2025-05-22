@@ -8,7 +8,9 @@ export type UserType = {
   role: string,
   complaines: {
     description: string
-  }
+    severity: string,
+    type: string
+  }[][]
   assignedDormitories: [
     {
       dormId: string,
@@ -20,4 +22,9 @@ export type UserType = {
       }
     }
   ]
+}
+export type ComplainType = {
+  description: string
+  severity: string,
+  type: string
 }

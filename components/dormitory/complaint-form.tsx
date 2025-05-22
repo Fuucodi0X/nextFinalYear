@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AlertCircle, MessageSquare, Search } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,20 +15,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { UserType } from "@/lib/types"
+import { ComplainType, UserType } from "@/lib/types"
+import { gql, useMutation } from "@apollo/client"
 
 interface DormitoryComplaintFormProps {
   user: UserType
   onSubmit: (complaint: any) => void
-  complaints: any[]
+  complaints: ComplainType[]
 }
 
+const insertComplaint = gql`
+  mutation insertIssue($accuserId:Uuid!,$accuedId:Uuid!,$description:Text!){
+    insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description }) {
+      affectedRows
+      returning {
+        description
+      }
+    }
+  }
+`
 export function DormitoryComplaintForm({ user, onSubmit, complaints }: DormitoryComplaintFormProps) {
   const [complaintType, setComplaintType] = useState("")
   const [description, setDescription] = useState("")
   const [severity, setSeverity] = useState("medium")
   const [searchQuery, setSearchQuery] = useState("")
-
+  const [insertComplain] = useMutation(insertComplaint)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -39,21 +50,21 @@ export function DormitoryComplaintForm({ user, onSubmit, complaints }: Dormitory
       description,
       severity,
     })
-
+    const accuerUser = JSON.parse(localStorage.getItem("user") ?? "")
+    insertComplain({ variables: { accuserId: accuerUser.id, accuedId: user.id, description } })
     // Reset form
     setComplaintType("")
     setDescription("")
     setSeverity("medium")
   }
 
-  const userComplaints = complaints.filter((complaint) => complaint.userId === user.id)
-
-  const filteredComplaints = userComplaints.filter((complaint) => {
+  const filteredComplaints = complaints.filter((complaint) => {
     if (!searchQuery) return true
 
     const query = searchQuery.toLowerCase()
     return complaint.type.toLowerCase().includes(query) || complaint.description.toLowerCase().includes(query)
   })
+  console.log(complaints)
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -149,8 +160,8 @@ export function DormitoryComplaintForm({ user, onSubmit, complaints }: Dormitory
           {filteredComplaints.length > 0 ? (
             <ScrollArea className="h-[350px]">
               <div className="space-y-4">
-                {filteredComplaints.map((complaint) => (
-                  <div key={complaint.id} className="rounded-lg border p-4">
+                {filteredComplaints.map((complaint, index) => (
+                  <div key={index} className="rounded-lg border p-4">
                     <div className="flex items-center justify-between mb-2">
                       <Badge
                         variant={
@@ -163,16 +174,16 @@ export function DormitoryComplaintForm({ user, onSubmit, complaints }: Dormitory
                                 : "outline"
                         }
                       >
-                        {complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1)}
+                        {complaint.severity ? complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1) : ""}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(complaint.timestamp).toLocaleString()}
+                        {/* new Date(complaint.timestamp).toLocaleString() */}
                       </span>
                     </div>
 
                     <h4 className="font-medium flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 text-primary" />
-                      {complaint.type.charAt(0).toUpperCase() + complaint.type.slice(1)} Complaint
+                      {complaint.type ? complaint.type.charAt(0).toUpperCase() + complaint.type.slice(1) : ""}
                     </h4>
 
                     <p className="mt-2 text-sm">{complaint.description}</p>
@@ -185,7 +196,7 @@ export function DormitoryComplaintForm({ user, onSubmit, complaints }: Dormitory
               <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="font-medium mb-1">No Complaints Found</h3>
               <p className="text-sm text-muted-foreground">
-                {userComplaints.length === 0
+                {complaints.length === 0
                   ? "This resident has no complaints on record"
                   : "No complaints match your search criteria"}
               </p>

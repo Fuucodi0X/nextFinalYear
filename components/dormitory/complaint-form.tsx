@@ -25,14 +25,16 @@ interface DormitoryComplaintFormProps {
 }
 
 const insertComplaint = gql`
-  mutation insertIssue($accuserId:Uuid!,$accuedId:Uuid!,$description:Text!){
-    insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description }) {
-      affectedRows
-      returning {
-        description
-      }
+mutation insertIssue($accuserId:Uuid!,$accuedId:Uuid!,$description:Text!,$severity:Varchar,$complaintType:Varchar){
+  insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description,severity: $severity,complaintType: $complaintType }) {
+    affectedRows
+    returning {
+      description
+      severity
+      complaintType
     }
   }
+}
 `
 export function DormitoryComplaintForm({ user, onSubmit, complaints }: DormitoryComplaintFormProps) {
   const [complaintType, setComplaintType] = useState("")
@@ -51,7 +53,7 @@ export function DormitoryComplaintForm({ user, onSubmit, complaints }: Dormitory
       severity,
     })
     const accuerUser = JSON.parse(localStorage.getItem("user") ?? "")
-    insertComplain({ variables: { accuserId: accuerUser.id, accuedId: user.id, description } })
+    insertComplain({ variables: { accuserId: accuerUser.id, accuedId: user.id, description, severity, complaintType } })
     // Reset form
     setComplaintType("")
     setDescription("")
@@ -59,12 +61,12 @@ export function DormitoryComplaintForm({ user, onSubmit, complaints }: Dormitory
   }
 
   const filteredComplaints = complaints.filter((complaint) => {
+    console.log(complaint)
     if (!searchQuery) return true
 
     const query = searchQuery.toLowerCase()
-    return complaint.type.toLowerCase().includes(query) || complaint.description.toLowerCase().includes(query)
+    return complaint.type?.toLowerCase().includes(query) || complaint.description?.toLowerCase().includes(query)
   })
-  console.log(complaints)
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -176,9 +178,6 @@ export function DormitoryComplaintForm({ user, onSubmit, complaints }: Dormitory
                       >
                         {complaint.severity ? complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1) : ""}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {/* new Date(complaint.timestamp).toLocaleString() */}
-                      </span>
                     </div>
 
                     <h4 className="font-medium flex items-center gap-2">

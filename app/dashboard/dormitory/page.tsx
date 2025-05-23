@@ -16,7 +16,6 @@ import { CardSimulator } from "@/components/card-simulator"
 import { io } from "socket.io-client"
 import { gql, useQuery } from "@apollo/client"
 import { UserType } from "@/lib/types"
-const dormAdmin = "9708049c-171a-4a11-8c90-974226156595"
 
 const navItems = [
   { href: "/dashboard/dormitory", label: "Dashboard", icon: Home },
@@ -168,12 +167,14 @@ export default function DormitoryDashboardPage() {
         )
       }
       const userData = data.nfcCardsByNfcId.assignedCards[0].user
-      if (userData.assignedDormitories && userData.assignedDormitories.length > 0) {
-        console.log(userData.assignedDormitories[0].status)
-        setKeyStatus(userData.assignedDormitories[0].status ? "issued" : "not_issued")
+      if (userData.assignedDormitories) {
+        if (userData.assignedDormitories.length > 0) {
+          console.log(userData.assignedDormitories[0].status)
+          setKeyStatus(userData.assignedDormitories[0].status ? "issued" : "not_issued")
+        }
       }
       if (userData.complaines) {
-        setComplaints(prev => [...prev, userData.complaines[0]])
+        setComplaints(prev => [...prev, ...userData.complaines])
       }
 
       console.log(userData)

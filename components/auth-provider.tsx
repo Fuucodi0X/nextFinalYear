@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 
 type User = {
   username: string
-  role: "admin" | "security" | "dormitory" | "cafe" | "library"
+  role: "admin" | "security" | "dormitory" | "cafe" | "library" | "complaints" | "payment" | "deposit"
 } | null
 
 type AuthContextType = {
@@ -22,6 +22,9 @@ const USERS = [
   { username: "dormitory", password: "dormitory", role: "dormitory", id: "9708049c-171a-4a11-8c90-974226156595" },
   { username: "cafe", password: "cafe", role: "cafe", id: "393c2b86-ee11-47b5-bf7a-ef23f398716d" },
   { username: "library", password: "library", role: "library" },
+  { username: "complaints", password: "complaints", role: "complaints" },
+  { username: "payment", password: "payment", role: "payment" },
+  { username: "deposit", password: "deposit", role: "deposit" },
   { username: "complaints", password: "complaints", role: "complaints", id: "b3e87a7f-3f20-4a96-b9d3-b996868db316" },
 ]
 

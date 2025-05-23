@@ -68,7 +68,7 @@ const ADD_NFC = gql`mutation registerCard($nfcId: Text!) {
   }
 }`;
 
-const GET_CARDS = gql`query registerdCards {
+const GET_ALL_CARDS = gql`query registerdCards {
   nfcCards {
     id
     nfcId
@@ -104,7 +104,7 @@ export default function CardsPage() {
   const [isWsConnected, setIsWsConnected] = useState(false)
   const [socket, setSocket] = useState<Socket | undefined>(undefined)
   const [addCard, { loading: addingCard, error: addCardError}] = useMutation(ADD_NFC)
-  const { loading: getCardsLoading, error: getCardsError, data: cardsData} = useQuery(GET_CARDS)
+  const { loading: getCardsLoading, error: getCardsError, data: cardsData} = useQuery(GET_ALL_CARDS)
 
   // Cards data
   if(getCardsLoading) return <Loading />

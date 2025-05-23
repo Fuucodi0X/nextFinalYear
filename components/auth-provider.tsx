@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 
 type User = {
   username: string
-  role: "admin" | "security" | "dormitory" | "cafe" | "library"
+  role: "admin" | "security" | "dormitory" | "cafe" | "library" | "complaints" | "payment"
 } | null
 
 type AuthContextType = {
@@ -23,6 +23,7 @@ const USERS = [
   { username: "cafe", password: "cafe", role: "cafe" },
   { username: "library", password: "library", role: "library" },
   { username: "complaints", password: "complaints", role: "complaints" },
+  { username: "payment", password: "payment", role: "payment" },
 ]
 
 // Mock card database

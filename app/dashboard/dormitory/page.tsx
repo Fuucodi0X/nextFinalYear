@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Bed, Building, Home, MessageSquare, Settings, User, Users } from "lucide-react"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -13,6 +13,8 @@ import { DormitoryUserDetails } from "@/components/dormitory/user-details"
 import { DormitoryKeyManagement } from "@/components/dormitory/key-management"
 import { DormitoryComplaintForm } from "@/components/dormitory/complaint-form"
 import { CardSimulator } from "@/components/card-simulator"
+import {gql, useQuery} from "@apollo/client"
+import {io} from "socket.io-client"
 
 const navItems = [
   { href: "/dashboard/dormitory", label: "Dashboard", icon: Home },
@@ -21,15 +23,79 @@ const navItems = [
   { href: "/dashboard/dormitory/settings", label: "Settings", icon: Settings },
 ]
 
+const USERS_NFCID = gql`query UsersByNfc($nfcId: Text!) {
+  nfcCardsByNfcId(nfcId: $nfcId) {
+    assignedCards {
+      user {
+        avatar
+        email
+        id
+        name
+        role
+        phoneNumber
+      }
+    }
+  }
+}`
+
+
+
 export default function DormitoryDashboardPage() {
   const { toast } = useToast()
   const [activeUser, setActiveUser] = useState<any>(null)
   const [keyStatus, setKeyStatus] = useState<"issued" | "not_issued" | "returned">("not_issued")
   const [complaints, setComplaints] = useState<any[]>([])
+  const [scannedCardId, setScannedCardId] = useState("")
 
-  const handleScan = (user: any) => {
-    setActiveUser(user)
-    setKeyStatus(user.keyStatus)
+  const {loading, error, data, refetch} = useQuery(USERS_NFCID, {variables: { nfcId: scannedCardId}})
+  
+  useEffect(() => {
+    const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL 
+
+    if (!wsurl) {
+      console.error("WebSocket URL is not defined!")
+      return;
+    }
+
+    const socket = io(wsurl, {
+      transports: ["websocket"]
+    })
+
+    socket.on("connect", () => {
+      console.log("Connected to websocket!")
+    })
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from websocket!")
+    })
+
+    socket.on("admin_card_registration", (nfcId: string) => {
+      setScannedCardId(nfcId)
+      refetch({variables: { nfcId: scannedCardId}}).then(({data: userData}) => {
+        handleScan(userData)
+      })
+      console.log(`Nfc_id: ${nfcId}`)
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
+
+
+  const handleScan = (userData: any) => {
+
+    console.log("data: ", userData)
+    const userr = {
+      id: userData.nfcCardsByNfcId?.assignedCards[0]?.user.id ? userData.nfcCardsByNfcId.assignedCards[0]?.user.id : "-",
+      name: userData.nfcCardsByNfcId?.assignedCards[0]?.user.name ? userData.nfcCardsByNfcId.assignedCards[0]?.user.name : "-",
+      email: userData.nfcCardsByNfcId?.assignedCards[0]?.user.email ? userData.nfcCardsByNfcId.assignedCards[0]?.user.email : "-",
+      phone: userData.nfcCardsByNfcId?.assignedCards[0]?.user.phoneNumber ? userData.nfcCardsByNfcId.assignedCards[0]?.user.phoneNumber : "-",
+      position: userData.nfcCardsByNfcId?.assignedCards[0]?.user.role ? userData.nfcCardsByNfcId.assignedCards[0]?.user.role : "-",
+      photo: userData.nfcCardsByNfcId?.assignedCards[0]?.user.avatar ? userData.nfcCardsByNfcId.assignedCards[0]?.user.avatar : "-",
+    }
+    setActiveUser(userr)
+    // setKeyStatus(user.keyStatus)
 
     toast({
       title: "ID Card Scanned",

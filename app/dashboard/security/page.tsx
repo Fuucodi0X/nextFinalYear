@@ -22,14 +22,20 @@ import { io } from "socket.io-client";
 import { gql, useQuery } from "@apollo/client"
 import { DashboardLayout } from "@/components/dashboard-layout"
 
-const GET_USERS = gql`
-  query Users {
-    users {
-      id
-      name
+const USERS_NFCID = gql`query UsersByNfc($nfcId: Text!) {
+  nfcCardsByNfcId(nfcId: $nfcId) {
+    assignedCards {
+      user {
+        avatar
+        email
+        id
+        name
+        role
+        phoneNumber
+      }
     }
   }
-`;
+}`;
 
 type ScanUpdate = {
   timestamp: string;
@@ -49,7 +55,9 @@ export default function SecurityDashboardPage() {
   const [direction, setDirection] = useState<"entry" | "exit">("entry")
   const [registeredItems, setRegisteredItems] = useState<any[]>([])
   const [connected, setConnected] = useState(false);
+  const [scannedCardId, setScannedCardId] = useState<string | null>(null)
   // const {loading, error, data} = useQuery(GET_USERS)
+  const {loading, error, data, refetch} = useQuery(USERS_NFCID, {variables: { nfcId: scannedCardId},skip:!scannedCardId})
 
   useEffect(() => {
     // Connecting to the websocket
@@ -74,10 +82,12 @@ export default function SecurityDashboardPage() {
       setConnected(false);
       console.log("Disconnected from websocket");
     });
-
-    socket.on("scanUpdate", (data: ScanUpdate) => {
-      console.log("Was here!!")
-      handleScan(data.personnelData);
+    // socket.on
+    socket.on("admin_card_registration", async (nfcId:string) => {
+      setScannedCardId(nfcId)
+      const {data}=await refetch({nfcId})
+      console.log("Was here!!",data)
+      handleScan(data);
     });
 
     return () => {
@@ -85,8 +95,18 @@ export default function SecurityDashboardPage() {
     };
   }, []);
 
-  const handleScan = (user: any) => {
-    setActiveUser(user)
+  const handleScan = (userData: any) => {
+
+    console.log("data: ", userData)
+    const userr = {
+      id: userData.nfcCardsByNfcId?.assignedCards[0]?.user.id ? userData.nfcCardsByNfcId.assignedCards[0]?.user.id : "-",
+      name: userData.nfcCardsByNfcId?.assignedCards[0]?.user.name ? userData.nfcCardsByNfcId.assignedCards[0]?.user.name : "-",
+      email: userData.nfcCardsByNfcId?.assignedCards[0]?.user.email ? userData.nfcCardsByNfcId.assignedCards[0]?.user.email : "-",
+      phone: userData.nfcCardsByNfcId?.assignedCards[0]?.user.phoneNumber ? userData.nfcCardsByNfcId.assignedCards[0]?.user.phoneNumber : "-",
+      position: userData.nfcCardsByNfcId?.assignedCards[0]?.user.role ? userData.nfcCardsByNfcId.assignedCards[0]?.user.role : "-",
+      photo: userData.nfcCardsByNfcId?.assignedCards[0]?.user.avatar ? userData.nfcCardsByNfcId.assignedCards[0]?.user.avatar : "-",
+    }
+    setActiveUser(userr)
 
     // If this is an exit scan, automatically populate with any previously registered items
     if (direction === "exit" && user) {

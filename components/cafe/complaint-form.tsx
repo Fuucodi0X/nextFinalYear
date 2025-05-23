@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AlertCircle, MessageSquare, Search } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,22 +15,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ComplainType, UserType } from "@/lib/types"
+import { gql, useMutation } from "@apollo/client"
 
 interface CafeComplaintFormProps {
-  user: {
-    id: string
-    name: string
-    photo: string
-  }
+ 
+  user: UserType
   onSubmit: (complaint: any) => void
-  complaints: any[]
+  
+  complaints: ComplainType[]
 }
+
+const insertComplaint = gql`
+  mutation insertIssue($accuserId:Uuid!,$accuedId:Uuid!,$description:Text!){
+    insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description }) {
+      affectedRows
+      returning {
+        description
+      }
+    }
+  }
+`
 
 export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintFormProps) {
   const [complaintType, setComplaintType] = useState("")
   const [description, setDescription] = useState("")
   const [severity, setSeverity] = useState("medium")
   const [searchQuery, setSearchQuery] = useState("")
+
+  const [insertComplain] = useMutation(insertComplaint)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,6 +55,10 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
       description,
       severity,
     })
+
+
+    const accuerUser = JSON.parse(localStorage.getItem("user") ?? "")
+    insertComplain({ variables: { accuserId: accuerUser.id, accuedId: user.id, description } })
 
     // Reset form
     setComplaintType("")
@@ -55,6 +72,7 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
     const query = searchQuery.toLowerCase()
     return complaint.type.toLowerCase().includes(query) || complaint.description.toLowerCase().includes(query)
   })
+  console.log(complaints)
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -85,12 +103,12 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
                   <SelectValue placeholder="Select complaint type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="food-quality">Food Quality Issue</SelectItem>
-                  <SelectItem value="service">Poor Service</SelectItem>
-                  <SelectItem value="behavior">Behavioral Issue</SelectItem>
-                  <SelectItem value="cleanliness">Cleanliness Issue</SelectItem>
-                  <SelectItem value="meal-plan">Meal Plan Violation</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="double-dipping">Student Trying to Eat Twice</SelectItem>
+                    <SelectItem value="behavior">Behavioral Issues</SelectItem>
+                    <SelectItem value="disruptive-behavior">Disruptive Behavior</SelectItem>
+                    <SelectItem value="theft">Theft of Food or Items</SelectItem>
+                    <SelectItem value="line-cutting">Cutting in Line</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

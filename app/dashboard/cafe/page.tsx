@@ -125,9 +125,9 @@ export default function CafeDashboardPage() {
   const [activeUser, setActiveUser] = useState<any>(null)
   const [mealHistory, setMealHistory] = useState<any[]>([])
   const [complaints, setComplaints] = useState<any[]>([])
-  const [scannedCardId, setScannedCardId] = useState("")
+  const [scannedCardId, setScannedCardId] = useState<string | null>(null)
   
-  const {loading, error, data, refetch} = useQuery(USERS_NFCID, {variables: { nfcId: scannedCardId}})
+  const {loading, error, data, refetch} = useQuery(USERS_NFCID, {variables: { nfcId: scannedCardId}, skip:!scannedCardId})
   
   useEffect(() => {
     const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL 
@@ -149,13 +149,12 @@ export default function CafeDashboardPage() {
       console.log("Disconnected from websocket!")
     })
 
-    socket.on("admin_card_registration", (nfcId: string) => {
+   socket.on("admin_card_registration", async (nfcId:string) => {
       setScannedCardId(nfcId)
-      refetch({variables: { nfcId: scannedCardId}}).then(({data: userData}) => {
-        handleScan(userData)
-      })
-      console.log(`Nfc_id: ${nfcId}`)
-    })
+      const {data}=await refetch({nfcId})
+      console.log("Was here!!",data)
+      handleScan(data);
+    });
 
     return () => {
       socket.disconnect()

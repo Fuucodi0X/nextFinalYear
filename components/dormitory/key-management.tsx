@@ -9,51 +9,78 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
+import { UserType } from "@/lib/types"
+import { gql, useMutation } from "@apollo/client"
+import { format } from 'date-fns'
 
 interface DormitoryKeyManagementProps {
-  user: {
-    id: string
-    name: string
-    dormitory: string
-    photo: string
-  }
+  user: UserType
   keyStatus: "issued" | "not_issued" | "returned"
   onKeyStatusChange: (status: "issued" | "not_issued" | "returned") => void
 }
+const issueQuery = gql`
+mutation UpdateAssignedDormitoryByDormIdAndUserId($keyDormId: Uuid!, $keyUserId: Uuid!, $status:Varchar) {
+  updateAssignedDormitoryByDormIdAndUserId(keyDormId: $keyDormId, keyUserId: $keyUserId, updateColumns: {status:{set: $status}}) {
+    returning {
+      status
+    }
+  }
+}
+`
 
 export function DormitoryKeyManagement({ user, keyStatus, onKeyStatusChange }: DormitoryKeyManagementProps) {
   const { toast } = useToast()
-  const [notes, setNotes] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  type KeyHistoryType = {
+    status: "Key Issued" | "Key Retuned",
+    date: string
+  }
+  const [keyHistory, setKeyHistory] = useState<KeyHistoryType[]>([])
 
-  const handleIssueKey = () => {
+  const [issue] = useMutation(issueQuery)
+
+  const handleIssueKey = async () => {
     setIsProcessing(true)
+    console.log("isssue key")
+    console.log(user.id)
+    if (!user.assignedDormitories[0] || !user.id) {
+      return
+    }
+    console.log(user.assignedDormitories[0].dormId)
+    await issue({ variables: { keyUserId: user.id, keyDormId: user.assignedDormitories[0].dormId, status: "issued" } })
+    onKeyStatusChange("issued")
+    setIsProcessing(false)
+    const newKeyHistory: KeyHistoryType = {
+      status: "Key Issued",
+      date: format(Date.now(), "PPpp")
+    }
+    setKeyHistory(prev => [...prev, newKeyHistory])
 
-    // Simulate processing delay
-    setTimeout(() => {
-      onKeyStatusChange("issued")
-      setIsProcessing(false)
-
-      toast({
-        title: "Key Issued",
-        description: `Room key has been issued to ${user.name}`,
-      })
-    }, 1500)
+    toast({
+      title: "Key Issued",
+      description: `Room key has been issued to ${user.name}`,
+    })
+    // }, 1500)
   }
 
-  const handleReturnKey = () => {
+  const handleReturnKey = async () => {
+    console.log("returning key")
     setIsProcessing(true)
 
-    // Simulate processing delay
-    setTimeout(() => {
-      onKeyStatusChange("returned")
-      setIsProcessing(false)
+    await issue({ variables: { keyUserId: user.id, keyDormId: user.assignedDormitories[0].dormId, status: "returned" } })
+    onKeyStatusChange("returned")
+    setIsProcessing(false)
 
-      toast({
-        title: "Key Returned",
-        description: `Room key has been returned by ${user.name}`,
-      })
-    }, 1500)
+    const newKeyHistory: KeyHistoryType = {
+      status: "Key Retuned",
+      date: format(Date.now(), "PPpp")
+    }
+    setKeyHistory(prev => [...prev, newKeyHistory])
+
+    toast({
+      title: "Key Returned",
+      description: `Room key has been returned by ${user.name}`,
+    })
   }
 
   return (
@@ -66,12 +93,12 @@ export function DormitoryKeyManagement({ user, keyStatus, onKeyStatusChange }: D
         <CardContent>
           <div className="flex items-center gap-4 mb-4">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={user.photo || "/placeholder.svg"} alt={user.name} />
+              <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
               <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
               <h3 className="font-medium">{user.name}</h3>
-              <p className="text-sm text-muted-foreground">{user.dormitory}</p>
+              <p className="text-sm text-muted-foreground">{user.assignedDormitories[0] ? user.assignedDormitories[0].dormitoryRoom.roomNumber : ""}</p>
             </div>
             <Badge variant="outline" className="ml-auto">
               {user.id}
@@ -103,21 +130,6 @@ export function DormitoryKeyManagement({ user, keyStatus, onKeyStatusChange }: D
               )}
             </div>
           </div>
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="notes" className="text-sm font-medium">
-                Notes
-              </label>
-              <Textarea
-                id="notes"
-                placeholder="Add any notes about the key issuance or return..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
         </CardContent>
         <CardFooter className="flex justify-between">
           {keyStatus === "issued" ? (
@@ -125,7 +137,7 @@ export function DormitoryKeyManagement({ user, keyStatus, onKeyStatusChange }: D
               {isProcessing ? "Processing..." : "Record Key Return"}
             </Button>
           ) : (
-            <Button onClick={handleIssueKey} disabled={isProcessing || keyStatus === "issued"} className="w-full">
+            <Button onClick={handleIssueKey} className="w-full">
               {isProcessing ? "Processing..." : "Issue Key"}
             </Button>
           )}
@@ -138,51 +150,22 @@ export function DormitoryKeyManagement({ user, keyStatus, onKeyStatusChange }: D
           <CardDescription>Recent key activity for this resident</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 rounded-lg border p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Key className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">Key Issued</p>
-                <p className="text-sm text-muted-foreground">2023-04-15 at 9:30 AM</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 rounded-lg border p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Key className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">Key Returned</p>
-                <p className="text-sm text-muted-foreground">2023-12-20 at 4:15 PM</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 rounded-lg border p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Key className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">Key Issued</p>
-                <p className="text-sm text-muted-foreground">2024-01-10 at 10:45 AM</p>
-              </div>
-            </div>
-
-            {keyStatus === "returned" && (
-              <div className="flex items-center gap-4 rounded-lg border p-3">
+          <div className="space-y-4 overflow-y-auto scroll-m-1">
+            {keyHistory.map((key, index) => (
+              <div key={index} className="flex items-center gap-4 rounded-lg border p-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                   <Key className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium">Key Returned</p>
-                  <p className="text-sm text-muted-foreground">Today at {new Date().toLocaleTimeString()}</p>
+                  <p className="font-medium">{key.status}</p>
+                  <p className="text-sm text-muted-foreground">{key.date}</p>
                 </div>
               </div>
-            )}
+
+            ))}
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div >
   )
 }

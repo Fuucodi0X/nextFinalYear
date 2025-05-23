@@ -6,6 +6,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { IdScanner } from "@/components/deposit/id-scanner"
 import { DepositProcessor } from "@/components/deposit/deposit-processor"
+import { WalletCreator } from "@/components/deposit/wallet-creator"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
@@ -21,21 +22,67 @@ type User = {
   balance: number
   cardId: string
   status: "active" | "suspended" | "expired"
+  hasWallet: boolean
+  walletId?: string
 }
 
 // Mock user database
 const USERS: User[] = [
-  { id: "1", name: "John Doe", studentId: "STU001", balance: 150.5, cardId: "CARD-1001", status: "active" },
-  { id: "2", name: "Jane Smith", studentId: "STU002", balance: 75.25, cardId: "CARD-1002", status: "active" },
-  { id: "3", name: "Mike Johnson", studentId: "STU003", balance: 200.0, cardId: "CARD-1003", status: "active" },
-  { id: "4", name: "Sarah Wilson", studentId: "STU004", balance: 0.0, cardId: "CARD-1004", status: "suspended" },
-  { id: "5", name: "David Brown", studentId: "STU005", balance: 325.75, cardId: "CARD-1005", status: "active" },
+  {
+    id: "1",
+    name: "John Doe",
+    studentId: "STU001",
+    balance: 150.5,
+    cardId: "CARD-1001",
+    status: "active",
+    hasWallet: true,
+    walletId: "WALLET-001",
+  },
+  {
+    id: "2",
+    name: "Jane Smith",
+    studentId: "STU002",
+    balance: 75.25,
+    cardId: "CARD-1002",
+    status: "active",
+    hasWallet: false,
+  },
+  {
+    id: "3",
+    name: "Mike Johnson",
+    studentId: "STU003",
+    balance: 200.0,
+    cardId: "CARD-1003",
+    status: "active",
+    hasWallet: true,
+    walletId: "WALLET-003",
+  },
+  {
+    id: "4",
+    name: "Sarah Wilson",
+    studentId: "STU004",
+    balance: 0.0,
+    cardId: "CARD-1004",
+    status: "suspended",
+    hasWallet: false,
+  },
+  {
+    id: "5",
+    name: "David Brown",
+    studentId: "STU005",
+    balance: 325.75,
+    cardId: "CARD-1005",
+    status: "active",
+    hasWallet: true,
+    walletId: "WALLET-005",
+  },
 ]
 
 export default function DepositPage() {
   const [scannedUser, setScannedUser] = useState<User | null>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [depositComplete, setDepositComplete] = useState(false)
+  const [isCreatingWallet, setIsCreatingWallet] = useState(false)
 
   const handleIdScanned = (cardId: string) => {
     setIsScanning(true)
@@ -65,6 +112,14 @@ export default function DepositPage() {
   const handleNewTransaction = () => {
     setScannedUser(null)
     setDepositComplete(false)
+  }
+
+  const handleWalletCreated = (walletId: string) => {
+    if (scannedUser) {
+      scannedUser.hasWallet = true
+      scannedUser.walletId = walletId
+      setIsCreatingWallet(false)
+    }
   }
 
   return (
@@ -120,19 +175,25 @@ export default function DepositPage() {
                   <div className="p-4 bg-muted rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-semibold">{scannedUser.name}</h3>
-                      <Badge variant={scannedUser.status === "active" ? "default" : "destructive"}>
-                        {scannedUser.status}
-                      </Badge>
+                      <div className="flex gap-2">
+                        <Badge variant={scannedUser.status === "active" ? "default" : "destructive"}>
+                          {scannedUser.status}
+                        </Badge>
+                        <Badge variant={scannedUser.hasWallet ? "default" : "secondary"}>
+                          {scannedUser.hasWallet ? "Wallet Active" : "No Wallet"}
+                        </Badge>
+                      </div>
                     </div>
                     <p className="text-sm text-muted-foreground mb-1">Student ID: {scannedUser.studentId}</p>
                     <p className="text-sm">
                       Current Balance: <span className="font-semibold">${scannedUser.balance.toFixed(2)}</span>
                     </p>
+                    {scannedUser.hasWallet && scannedUser.walletId && (
+                      <p className="text-sm text-muted-foreground">Wallet ID: {scannedUser.walletId}</p>
+                    )}
                   </div>
 
-                  {scannedUser.status === "active" ? (
-                    <DepositProcessor user={scannedUser} onDepositComplete={handleDepositComplete} />
-                  ) : (
+                  {scannedUser.status !== "active" ? (
                     <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
                       <p className="text-destructive font-medium">Account Suspended</p>
                       <p className="text-sm text-destructive/80">
@@ -142,6 +203,21 @@ export default function DepositPage() {
                         Scan Another ID
                       </Button>
                     </div>
+                  ) : !scannedUser.hasWallet ? (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-yellow-800 font-medium mb-2">No Wallet Found</p>
+                      <p className="text-sm text-yellow-700 mb-4">
+                        This student doesn't have a wallet yet. A wallet must be created before making deposits.
+                      </p>
+                      <WalletCreator
+                        user={scannedUser}
+                        onWalletCreated={handleWalletCreated}
+                        isCreating={isCreatingWallet}
+                        setIsCreating={setIsCreatingWallet}
+                      />
+                    </div>
+                  ) : (
+                    <DepositProcessor user={scannedUser} onDepositComplete={handleDepositComplete} />
                   )}
                 </div>
               )}

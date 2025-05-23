@@ -15,6 +15,8 @@ interface User {
   balance: number
   cardId: string
   status: "active" | "suspended" | "expired"
+  hasWallet: boolean
+  walletId?: string
 }
 
 interface DepositProcessorProps {

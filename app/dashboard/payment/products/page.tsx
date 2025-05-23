@@ -21,37 +21,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Sample products by category
 const initialProducts = {
-  cafe: [
-    { id: "cafe-1", name: "Coffee", price: 2.5 },
-    { id: "cafe-2", name: "Latte", price: 3.75 },
-    { id: "cafe-3", name: "Cappuccino", price: 4.0 },
-    { id: "cafe-4", name: "Espresso", price: 2.25 },
-    { id: "cafe-5", name: "Tea", price: 2.0 },
-    { id: "cafe-6", name: "Hot Chocolate", price: 3.5 },
-    { id: "cafe-7", name: "Pastry", price: 2.75 },
-  ],
-  library: [
-    { id: "lib-1", name: "Late Fee", price: 5.0 },
-    { id: "lib-2", name: "Printing (B&W)", price: 0.1 },
-    { id: "lib-3", name: "Printing (Color)", price: 0.5 },
-    { id: "lib-4", name: "Book Replacement", price: 25.0 },
-    { id: "lib-5", name: "Study Room Rental", price: 10.0 },
-  ],
-  dormitory: [
-    { id: "dorm-1", name: "Laundry", price: 3.0 },
-    { id: "dorm-2", name: "Room Cleaning", price: 15.0 },
-    { id: "dorm-3", name: "Key Replacement", price: 20.0 },
-    { id: "dorm-4", name: "Maintenance", price: 25.0 },
-  ],
-  cafeteria: [
-    { id: "food-1", name: "Breakfast", price: 6.5 },
-    { id: "food-2", name: "Lunch", price: 8.75 },
-    { id: "food-3", name: "Dinner", price: 9.5 },
-    { id: "food-4", name: "Snack", price: 3.25 },
-    { id: "food-5", name: "Salad", price: 5.5 },
-    { id: "food-6", name: "Sandwich", price: 6.0 },
-    { id: "food-7", name: "Soup", price: 4.5 },
-  ],
   store: [
     { id: "store-1", name: "Notebook", price: 3.5 },
     { id: "store-2", name: "Pen Pack", price: 4.25 },
@@ -64,20 +33,16 @@ const initialProducts = {
 
 // Categories with icons
 const categories = [
-  { id: "cafe", name: "Cafe" },
-  { id: "library", name: "Library" },
-  { id: "dormitory", name: "Dormitory" },
-  { id: "cafeteria", name: "Cafeteria" },
   { id: "store", name: "Campus Store" },
 ]
 
 export default function ProductsPage() {
   const [products, setProducts] = useState(initialProducts)
-  const [activeCategory, setActiveCategory] = useState("cafe")
+  const [activeCategory, setActiveCategory] = useState("store")
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [newProduct, setNewProduct] = useState({ name: "", price: "", category: "cafe" })
+  const [newProduct, setNewProduct] = useState({ name: "", price: "", category: "store" })
   const [editingProduct, setEditingProduct] = useState<{
     id: string
     name: string
@@ -109,7 +74,7 @@ export default function ProductsPage() {
       [category]: [...products[category], { id: newId, name: newProduct.name, price }],
     })
 
-    setNewProduct({ name: "", price: "", category: "cafe" })
+    setNewProduct({ name: "", price: "", category: "store" })
     setIsAddDialogOpen(false)
   }
 

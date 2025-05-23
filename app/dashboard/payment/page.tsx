@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CreditCard, DollarSign, Receipt, Package, Coffee, Book, Home, Utensils } from "lucide-react"
+import { Shield, CreditCard, DollarSign, Receipt, Package, Coffee, Book, Home, Utensils } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,13 +11,11 @@ import { CardScanner } from "@/components/card-scanner"
 import { PaymentProcessor } from "@/components/payment/payment-processor"
 import { ProductSelector } from "@/components/payment/product-selector"
 import { OrderSummary } from "@/components/payment/order-summary"
+import { PinInput } from "@/components/payment/pin-input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 // Sample categories and products
 const categories = [
-  { id: "cafe", name: "Cafe", icon: Coffee },
-  { id: "library", name: "Library", icon: Book },
-  { id: "dormitory", name: "Dormitory", icon: Home },
-  { id: "cafeteria", name: "Cafeteria", icon: Utensils },
   { id: "store", name: "Campus Store", icon: Package },
 ]
 
@@ -25,11 +23,13 @@ export default function PaymentDashboard() {
   const [activeTab, setActiveTab] = useState("new-order")
   const [orderItems, setOrderItems] = useState<Array<{ id: string; name: string; price: number; quantity: number }>>([])
   const [selectedCategory, setSelectedCategory] = useState(categories[0].id)
-  const [paymentStage, setPaymentStage] = useState<"creating" | "scanning" | "processing" | "complete" | "failed">(
-    "creating",
-  )
+  const [paymentStage, setPaymentStage] = useState<
+    "creating" | "scanning" | "pin-confirmation" | "processing" | "complete" | "failed"
+  >("creating")
   const [scannedCardId, setScannedCardId] = useState<string | null>(null)
   const [studentInfo, setStudentInfo] = useState<any>(null)
+  const [enteredPin, setEnteredPin] = useState("")
+  const [pinError, setPinError] = useState("")
 
   // Mock student data
   const students = {
@@ -71,14 +71,33 @@ export default function PaymentDashboard() {
 
   const handleCardScanned = (cardId: string) => {
     setScannedCardId(cardId)
+    const student = students[cardId as keyof typeof students]
+    setStudentInfo(student)
+
+    if (student) {
+      setPaymentStage("pin-confirmation")
+    } else {
+      setPaymentStage("failed")
+    }
+  }
+
+  const handlePinConfirmation = (pin: string) => {
+    setEnteredPin(pin)
+    setPinError("")
     setPaymentStage("processing")
 
-    // Simulate processing
+    // Simulate PIN verification and payment processing
     setTimeout(() => {
-      const student = students[cardId as keyof typeof students]
-      setStudentInfo(student)
+      // Mock PIN validation (in real app, this would be server-side)
+      const correctPin = "1234" // Mock PIN for demo
 
-      if (student && student.balance >= calculateTotal()) {
+      if (pin !== correctPin) {
+        setPinError("Incorrect PIN. Please try again.")
+        setPaymentStage("pin-confirmation")
+        return
+      }
+
+      if (studentInfo && studentInfo.balance >= calculateTotal()) {
         setPaymentStage("complete")
       } else {
         setPaymentStage("failed")
@@ -98,7 +117,6 @@ export default function PaymentDashboard() {
     { href: "/dashboard/payment", label: "Dashboard", icon: CreditCard },
     { href: "/dashboard/payment/history", label: "Payment History", icon: Receipt },
     { href: "/dashboard/payment/products", label: "Products", icon: Package },
-    // { href: "/dashboard/payment/settings", label: "Settings", icon: Shield },
   ]
 
   return (
@@ -180,6 +198,39 @@ export default function PaymentDashboard() {
                 <CardFooter className="flex justify-between">
                   <Button variant="outline" onClick={() => setPaymentStage("creating")}>
                     Back to Order
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
+
+            {paymentStage === "pin-confirmation" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Enter PIN</CardTitle>
+                  <CardDescription>
+                    Please enter your 4-digit PIN to confirm payment of ${calculateTotal().toFixed(2)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center py-6">
+                  {studentInfo && (
+                    <div className="mb-6 flex items-center gap-4">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={studentInfo.photo || "/placeholder.svg"} alt={studentInfo.name} />
+                        <AvatarFallback>{studentInfo.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-medium">{studentInfo.name}</h3>
+                        <p className="text-sm text-muted-foreground">ID: {studentInfo.id}</p>
+                        <p className="text-sm text-muted-foreground">Balance: ${studentInfo.balance.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <PinInput onPinComplete={handlePinConfirmation} error={pinError} />
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => setPaymentStage("scanning")}>
+                    Back to Scan
                   </Button>
                 </CardFooter>
               </Card>

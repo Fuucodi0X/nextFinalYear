@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Home, Settings, Shield, User, Users, CreditCard, Database, BookOpen } from "lucide-react"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -34,7 +34,7 @@ const ADD_USER = gql`mutation addUser($email: Varchar!, $name: Text!, $phoneNum:
   }
 }`
 
-const GET_USERS = gql`query users {
+const GET_ALL_USERS = gql`query users {
   users {
     id
     name
@@ -90,36 +90,33 @@ export default function AdminDashboardPage() {
     { id: "CARD-2003", status: "unassigned" },
   ])
   const [formData, setFormData] = useState<FormData | null>(null)
-  const {data: userData, loading: getUsersLoading, error: getUsersError, refetch: refetchUsers} = useQuery(GET_USERS)
+  const {data: userData, loading: getUsersLoading, error: getUsersError, refetch: refetchUsers} = useQuery(GET_ALL_USERS)
   const [addUser, {loading: addingUser, error: addUserError}] = useMutation(ADD_USER)
+  
+  const registerUser = () => {
+    if (formData) {
+      const err = addUser({ variables: { email: formData?.email, name: formData?.name, phoneNum: formData?.phone, role: formData?.role } }).then(() => {
+        return addUserError
+      }).finally( () => {
+        if (addUserError) {
+          // setCardError(addUserError.message)
+          console.log("Error: ", addUserError?.message)
+        }
+      }
+      )
+      return err
+    }
+  }
+
+  useEffect(() => {
+    registerUser()
+  }, [formData])
 
   // Load users
   if(getUsersLoading) return <Loading />
-  console.log("userData: ", userData)
-  
-  const registerUser = () => {
-    const err = addUser({ variables: { email: formData?.email, name: formData?.name, phoneNum: formData?.phone, role: formData?.role } }).then(() => {
-      return addUserError
-    }).finally( () => {
-      if (addUserError) {
-        // setCardError(addUserError.message)
-        console.log("Error: ", addUserError?.message)
-      }
-    }
-    )
-    return err
-  }
 
-  const handleUserRegistration = (userData: FormData) => {
-    setFormData(userData)
-    const newUser = {
-      id: `USER-${Date.now()}`,
-      ...userData,
-      cardAssigned: false,
-      createdAt: new Date().toISOString(),
-    }
-
-    setUsers([...users, newUser])
+  const handleUserRegistration = (formData: FormData) => {
+    setFormData(formData)
 
     toast({
       title: "User Registered",

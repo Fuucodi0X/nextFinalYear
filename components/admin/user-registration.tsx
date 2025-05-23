@@ -41,7 +41,7 @@ export function UserRegistration({ onSubmit }: UserRegistrationProps) {
 
     try {
       // Validate form
-      if (!formData.name || !formData.email || !formData.role || !formData.department) {
+      if (!formData.name || !formData.email || !formData.role || !formData.phone) {
         throw new Error("Please fill in all required fields")
       }
 

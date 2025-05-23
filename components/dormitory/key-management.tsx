@@ -42,8 +42,15 @@ export function DormitoryKeyManagement({ user, keyStatus, onKeyStatusChange }: D
   const handleIssueKey = async () => {
     setIsProcessing(true)
     console.log("isssue key")
-    console.log(user.id)
+    console.log(user.assignedDormitories)
     if (!user.assignedDormitories[0] || !user.id) {
+      toast({
+        variant: "destructive",
+        title: "Key not assigned",
+        description: `Dorm has been assigned to ${user.name}`,
+      })
+
+      setIsProcessing(false)
       return
     }
     console.log(user.assignedDormitories[0].dormId)

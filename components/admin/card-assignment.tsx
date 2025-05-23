@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, Search, User } from "lucide-react"
 import { ContactIcon as ContactlessIcon } from "lucide-react"
 
@@ -15,12 +15,22 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { io } from "socket.io-client"
+import { gql, useQuery } from "@apollo/client"
 
 interface CardAssignmentProps {
   users: any[]
   unassignedCards: any[]
   onAssign: (userId: string, cardId: string) => void
 }
+
+const CHECK_CARD = gql`query checkCard($nfcId: Text!) {
+  card: nfcCardsByNfcId(nfcId: $nfcId){
+    totalAssigned:assignedCardsAggregate {
+      count: _count
+    }
+  }
+}`
 
 // Mock database of all cards in the system
 const ALL_CARDS = [
@@ -41,6 +51,9 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
   const [isScanning, setIsScanning] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
+  const [isWsConnected, setIsWsConnected] = useState(false)
+  const [nfcId, setNfcId] = useState<string | null>(null)
+  const {data: nfcData, refetch: refetchNfcData} = useQuery(CHECK_CARD, {variables: {nfcId: nfcId, skip: !nfcId}})
 
   // Filter users based on search query
   const filteredUsers = users.filter((user) => {
@@ -53,6 +66,67 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
       user.department.toLowerCase().includes(query)
     )
   })
+
+  const checkCard = async(nfcId: string) => {
+    const {data, error} = await refetchNfcData({nfcId: nfcId})
+    if(data.card.totalAssigned.count == 0) {
+      setSelectedCard(nfcId)
+      setIsScanning(false)
+    } else {
+        setCardError("This card is already assigned to another user.")
+        toast({
+          title: "Card Inactive",
+          description: "This card is inactive and cannot be assigned.",
+          variant: "destructive",
+        })
+    }
+  }
+
+  useEffect(() => {
+    // Connecting to the websocket
+    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3001";
+    console.log("Attempting to connect to WebSocket URL:", wsUrl); // <-- Add this log
+    
+    if (!wsUrl) {
+      console.error("WebSocket URL is not defined!");
+      return;
+    }
+    
+    const socket = io(wsUrl, {
+      transports: ["websocket"],
+    });
+
+    socket.on("connect", () => {
+      setIsWsConnected(true);
+      toast({
+        title: "Websocket",
+        description: `Connected to websocket.`,
+      })
+    });
+
+    socket.on("disconnect", () => {
+      setIsWsConnected(false);
+      toast({
+        title: "Websocket",
+        description: "Disconnected from websocket.",
+        variant: "destructive",
+      })
+    });
+
+    socket.on("admin_card_registration", (nfc_id: string) => {
+      setIsScanning(true)
+      setCardError(null)
+      checkCard(nfc_id)
+      toast({
+        title: "Websocket",
+        description: `Nfc card with ID: ${nfc_id}!!`,
+      })
+    });
+
+    return () => {
+      socket.disconnect();
+    }
+  }, [])
 
   const handleScanCard = () => {
     setIsScanning(true)

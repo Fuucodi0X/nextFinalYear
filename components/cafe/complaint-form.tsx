@@ -86,7 +86,7 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4 mb-2">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user.photo || "/placeholder.svg"} alt={user.name} />
+                <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user.name} />
                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div>

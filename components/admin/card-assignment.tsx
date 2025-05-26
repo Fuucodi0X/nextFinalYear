@@ -16,29 +16,11 @@ import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { io } from "socket.io-client"
-import { gql, useQuery } from "@apollo/client"
+import { gql, useMutation, useQuery } from "@apollo/client"
 
 interface CardAssignmentProps {
   users: any[]
-  unassignedCards: any[]
-  onAssign: (userId: string, cardId: string) => void
 }
-
-const GET_ALL_USERS = gql`query users {
-  users {
-    id
-    name
-    avatar
-    email
-    role
-  }
-  nfcCardsCount: nfcCardsAggregate{
-    num: _count
-  }
-  assignedCardsCount: assignedCardsAggregate{
-    num: _count
-  }
-}`
 
 const USERS_BY_NFC = gql`query usersByNfcId($nfcId: Text!) {
   data: assignedCardsByNfcId(nfcId: $nfcId) {
@@ -58,7 +40,7 @@ const ASSIGN_USER = gql`mutation assigneCard ($nfcId: Text!, $userId: Uuid!) {
   }
 }`
 
-export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignmentProps) {
+export function CardAssignment({ users }: CardAssignmentProps) {
   const { toast } = useToast()
   const [userSearchQuery, setUserSearchQuery] = useState("")
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
@@ -68,8 +50,8 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
   const [cardError, setCardError] = useState<string | null>(null)
   const [isWsConnected, setIsWsConnected] = useState(false)
   const [nfcId, setNfcId] = useState<string | null>(null)
-  const {data: usersData, refetch: refetchUsersData} = useQuery(GET_ALL_USERS)
   const {data: userData, refetch: refetchUserData} = useQuery(USERS_BY_NFC, {variables: {nfcId: nfcId, skip: !nfcId}})
+  const [assignCard, {data, loading, error}] = useMutation(ASSIGN_USER)
 
   // Filter users based on search query
   const filteredUsers = users.filter((user) => {
@@ -79,24 +61,9 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
       user.name.toLowerCase().includes(query) ||
       user.id.toLowerCase().includes(query) ||
       user.email.toLowerCase().includes(query) ||
-      user.department.toLowerCase().includes(query)
+      user.role.toLowerCase().includes(query)
     )
   })
-
-  // const checkCard = async(nfcId: string) => {
-  //   const {data, error} = await refetchNfcData({nfcId: nfcId})
-  //   if(data.card.totalAssigned.count == 0) {
-  //     setSelectedCard(nfcId)
-  //     setIsScanning(false)
-  //   } else {
-  //       setCardError("This card is already assigned to another user.")
-  //       toast({
-  //         title: "Card Inactive",
-  //         description: "This card is inactive and cannot be assigned.",
-  //         variant: "destructive",
-  //       })
-  //   }
-  // }
 
   useEffect(() => {
     // Connecting to the websocket
@@ -166,12 +133,17 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
     setIsLoading(true)
 
     try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      assignCard({variables: {nfcId: selectedCard, userId: selectedUser} })
 
-      // Assign card to user
-      onAssign(selectedUser, selectedCard)
-
+      if(error) {
+        toast({
+          title: "Error while assigning card!",
+          description: error.message,
+          variant: "destructive"
+        })
+        return
+      }
+      
       toast({
         title: "Card Assigned Successfully",
         description: `Card ${selectedCard} has been assigned to the selected user.`,
@@ -227,7 +199,7 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
                       <RadioGroupItem value={user.id} id={`user-${user.id}`} />
                       <Label htmlFor={`user-${user.id}`} className="flex items-center gap-3 cursor-pointer flex-1">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" alt={user.name} />
+                          <AvatarImage src={user.avatar ? user.avatar : "/placeholder.svg?height=32&width=32"} alt={user.name} />
                           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
@@ -244,7 +216,7 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
               <div className="p-4 text-center">
                 <User className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-muted-foreground">
-                  {usersData?.users?.length === 0 ? "No users available" : "No users match your search"}
+                  {users?.length === 0 ? "No users available" : "No users match your search"}
                 </p>
               </div>
             )}

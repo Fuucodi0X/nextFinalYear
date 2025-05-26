@@ -125,29 +125,6 @@ export default function AdminDashboardPage() {
     })
   }
 
-  const handleCardAssignment = (userId: string, cardId: string) => {
-    // Update user with card assignment
-    setUsers(
-      users.map((user) =>
-        user.id === userId
-          ? {
-              ...user,
-              cardAssigned: true,
-              cardId,
-            }
-          : user,
-      ),
-    )
-
-    // Remove card from unassigned cards
-    setUnassignedCards(unassignedCards.filter((card) => card.id !== cardId))
-
-    toast({
-      title: "Card Assigned",
-      description: `Card ${cardId} has been assigned successfully`,
-    })
-  }
-
   const handleUserUpdate = (updatedUser: any) => {
     setUsers(users.map((user) => (user.id === updatedUser.id ? updatedUser : user)))
 
@@ -232,8 +209,6 @@ export default function AdminDashboardPage() {
         <TabsContent value="cards">
           <CardAssignment
             users={userData?.users}
-            unassignedCards={unassignedCards}
-            onAssign={handleCardAssignment}
           />
         </TabsContent>
       </Tabs>

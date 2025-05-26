@@ -45,176 +45,53 @@ const navItems = [
   { href: "/dashboard/complaints/settings", label: "Settings", icon: Settings },
 ]
 
-const USERS_NFCID = gql`query UsersByNfc($nfcId: Text!) {
-  nfcCardsByNfcId(nfcId: $nfcId) {
-    assignedCards {
-      user {
-        avatar
-        email
+const USERS_NFCID = gql`query usersByNfcId($nfcId: Text!) {
+  data: assignedCardsByNfcId(nfcId: $nfcId) {
+    user {
+      id
+      avatar
+      name
+      email
+      phoneNumber
+      role
+      complaines {
         id
-        name
-        role
-        phoneNumber
+        type: complaintType
+        status
+        severity
+        description
+        source
+        time
       }
     }
+  } 
+}`
+
+const PENDING_COMPLAINTS = gql`query complaints {
+  complaines (where:  {
+     status:  {
+        _eq: "pending"
+     }
+  }) {
+    user {
+      name
+      avatar
+    }
+    id
+    type: complaintType
+    status
+    severity
+    description
+    source
+    time
   }
 }`
 
 
-// Mock complaints data
-const mockComplaints = [
-  {
-    id: "COMP-1001",
-    userId: "STU-1001",
-    userName: "Alex Johnson",
-    userPhoto: "/placeholder.svg?height=128&width=128",
-    source: "cafe",
-    type: "behavior",
-    description: "Disruptive behavior during lunch hour. Student was shouting and disturbing other diners.",
-    severity: "medium",
-    status: "pending",
-    timestamp: "2023-05-10T14:30:00Z",
-  },
-  {
-    id: "COMP-1002",
-    userId: "STU-1002",
-    userName: "Sarah Williams",
-    userPhoto: "/placeholder.svg?height=128&width=128",
-    source: "dormitory",
-    type: "noise",
-    description: "Excessive noise after quiet hours. Multiple students complained about loud music at 1 AM.",
-    severity: "high",
-    status: "pending",
-    timestamp: "2023-05-11T02:15:00Z",
-  },
-  {
-    id: "COMP-1003",
-    userId: "STU-1003",
-    userName: "Emily Davis",
-    userPhoto: "/placeholder.svg?height=128&width=128",
-    source: "library",
-    type: "damage",
-    description: "Book returned with significant damage. Pages torn and coffee stains throughout.",
-    severity: "medium",
-    status: "pending",
-    timestamp: "2023-05-09T16:45:00Z",
-  },
-  {
-    id: "COMP-1004",
-    userId: "STU-1001",
-    userName: "Alex Johnson",
-    userPhoto: "/placeholder.svg?height=128&width=128",
-    source: "dormitory",
-    type: "property-damage",
-    description: "Damaged dormitory furniture. Chair in common area broken.",
-    severity: "high",
-    status: "pending",
-    timestamp: "2023-05-08T19:20:00Z",
-  },
-  {
-    id: "COMP-1005",
-    userId: "FAC-1001",
-    userName: "Michael Brown",
-    userPhoto: "/placeholder.svg?height=128&width=128",
-    source: "cafe",
-    type: "service",
-    description: "Complaint about poor service quality and long wait times in faculty dining area.",
-    severity: "low",
-    status: "pending",
-    timestamp: "2023-05-12T12:10:00Z",
-  },
-  {
-    id: "COMP-1006",
-    userId: "STU-1004",
-    userName: "Jessica Lee",
-    userPhoto: "/placeholder.svg?height=128&width=128",
-    source: "library",
-    type: "behavior",
-    description: "Disruptive behavior in quiet study area. Student was talking loudly on phone.",
-    severity: "medium",
-    status: "processed",
-    resolution: "warning",
-    resolutionNotes: "First offense, verbal warning issued.",
-    resolutionDate: "2023-05-01T10:30:00Z",
-    timestamp: "2023-05-01T09:15:00Z",
-  },
-  {
-    id: "COMP-1007",
-    userId: "STU-1005",
-    userName: "David Wilson",
-    userPhoto: "/placeholder.svg?height=128&width=128",
-    source: "dormitory",
-    type: "property-damage",
-    description: "Graffiti found on dormitory wall. Student caught on security camera.",
-    severity: "high",
-    status: "processed",
-    resolution: "suspension",
-    resolutionNotes: "Two-week suspension from dormitory privileges.",
-    resolutionDate: "2023-04-28T14:20:00Z",
-    timestamp: "2023-04-27T22:40:00Z",
-  },
-]
-
-// Mock user data
-const mockUsers = [
-  {
-    id: "STU-1001",
-    name: "Alex Johnson",
-    email: "alex.johnson@university.edu",
-    phone: "(555) 123-4567",
-    department: "Computer Science",
-    position: "Student",
-    accessLevel: "Medium",
-    photo: "/placeholder.svg?height=128&width=128",
-    warningCount: 2,
-    suspensionCount: 0,
-    status: "active",
-  },
-  {
-    id: "STU-1002",
-    name: "Sarah Williams",
-    email: "sarah.williams@university.edu",
-    phone: "(555) 234-5678",
-    department: "Business",
-    position: "Student",
-    accessLevel: "Medium",
-    photo: "/placeholder.svg?height=128&width=128",
-    warningCount: 1,
-    suspensionCount: 0,
-    status: "active",
-  },
-  {
-    id: "STU-1003",
-    name: "Emily Davis",
-    email: "emily.davis@university.edu",
-    phone: "(555) 456-7890",
-    department: "Literature",
-    position: "Student",
-    accessLevel: "Medium",
-    photo: "/placeholder.svg?height=128&width=128",
-    warningCount: 0,
-    suspensionCount: 0,
-    status: "active",
-  },
-  {
-    id: "FAC-1001",
-    name: "Michael Brown",
-    email: "michael.brown@university.edu",
-    phone: "(555) 345-6789",
-    department: "Physics",
-    position: "Professor",
-    accessLevel: "High",
-    photo: "/placeholder.svg?height=128&width=128",
-    warningCount: 0,
-    suspensionCount: 0,
-    status: "active",
-  },
-]
-
 export default function ComplaintsDashboardPage() {
   const { toast } = useToast()
   const [activeUser, setActiveUser] = useState<any>(null)
-  const [complaints, setComplaints] = useState<any[]>(mockComplaints)
+  const [complaints, setComplaints] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTab, setSelectedTab] = useState("pending")
   const [showActionDialog, setShowActionDialog] = useState(false)
@@ -223,58 +100,54 @@ export default function ComplaintsDashboardPage() {
   const [actionNotes, setActionNotes] = useState("")
   const [actionDuration, setActionDuration] = useState("7")
   const [scannedCardId, setScannedCardId] = useState<string | null>(null)
+  const {loading, error, data, refetch} = useQuery(USERS_NFCID, {variables: { nfcId: scannedCardId},skip:!scannedCardId})
+  const {data: pendingComplaints, loading: loadingPendingComplaints, error: pendingComplaintsError} = useQuery(PENDING_COMPLAINTS)
     
-    const {loading, error, data, refetch} = useQuery(USERS_NFCID, {variables: { nfcId: scannedCardId},skip:!scannedCardId})
-    
-    useEffect(() => {
-      const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL 
-  
-      if (!wsurl) {
-        console.error("WebSocket URL is not defined!")
-        return;
-      }
-  
-      const socket = io(wsurl, {
-        transports: ["websocket"]
-      })
-  
-      socket.on("connect", () => {
-        console.log("Connected to websocket!")
-      })
-  
-      socket.on("disconnect", () => {
-        console.log("Disconnected from websocket!")
-      })
-  
-      socket.on("admin_card_registration", async (nfcId: string) => {
-        setScannedCardId(nfcId)
-        const {data} = await refetch({nfcId})
-        handleScan(data)
-    
-        console.log(`Nfc_id: ${nfcId}`)
-      })
-  
-      return () => {
-        socket.disconnect()
-      }
-    }, [])
+  useEffect(() => {
+    const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL 
 
- const handleScan = (userData: any) => {
-     // Simulate finding a user based on card ID
-     // In a real app, this would query a database
-     console.log("data: ", userData)
-    
-     const userr = {
-       id: userData.nfcCardsByNfcId?.assignedCards[0]?.user.id ? userData.nfcCardsByNfcId.assignedCards[0]?.user.id : "-",
-       name: userData.nfcCardsByNfcId?.assignedCards[0]?.user.name ? userData.nfcCardsByNfcId.assignedCards[0]?.user.name : "-",
-       email: userData.nfcCardsByNfcId?.assignedCards[0]?.user.email ? userData.nfcCardsByNfcId.assignedCards[0]?.user.email : "-",
-       phone: userData.nfcCardsByNfcId?.assignedCards[0]?.user.phoneNumber ? userData.nfcCardsByNfcId.assignedCards[0]?.user.phoneNumber : "-",
-       position: userData.nfcCardsByNfcId?.assignedCards[0]?.user.role ? userData.nfcCardsByNfcId.assignedCards[0]?.user.role : "-",
-       photo: userData.nfcCardsByNfcId?.assignedCards[0]?.user.avatar ? userData.nfcCardsByNfcId.assignedCards[0]?.user.avatar : "-",
-     }
-     const user = mockUsers[Math.floor(Math.random() * mockUsers.length)]
+    if (!wsurl) {
+      console.error("WebSocket URL is not defined!")
+      return;
+    }
+
+    const socket = io(wsurl, {
+      transports: ["websocket"]
+    })
+
+    socket.on("connect", () => {
+      console.log("Connected to websocket!")
+    })
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from websocket!")
+    })
+
+    socket.on("admin_card_registration", async (nfcId: string) => {
+      setScannedCardId(nfcId)
+      const {data} = await refetch({nfcId})
+      handleScan(data)
+  
+      console.log(`Nfc_id: ${nfcId}`)
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
+
+  const handleScan = (userData: any) => {    
+    console.log("Data", userData)
+    const user = {
+      id: userData?.data?.user.id ? userData?.data?.user.id : "-",
+      name: userData?.data?.user.name ? userData?.data?.user.name : "-",
+      email: userData?.data?.user.email ? userData?.data?.user.email : "-",
+      phone: userData?.data?.user.phoneNumber ? userData?.data?.user.phoneNumber : "-",
+      position: userData?.data?.user.role ? userData?.data?.user.role : "-",
+      photo: userData?.data?.user.avatar ? userData?.data?.user.avatar : "-",
+    }
  
-     setActiveUser(userr)
+    setActiveUser(user)
 
     toast({
       title: "ID Card Scanned",
@@ -292,7 +165,7 @@ export default function ComplaintsDashboardPage() {
 
   const submitAction = () => {
     // Update the complaint status
-    const updatedComplaints = complaints.map((comp) => {
+    const updatedComplaints = pendingComplaints?.complaines?.map((comp: any) => {
       if (comp.id === selectedComplaint.id) {
         return {
           ...comp,
@@ -336,12 +209,12 @@ export default function ComplaintsDashboardPage() {
   }
 
   // Filter complaints based on search query and selected tab
-  const filteredComplaints = complaints.filter((complaint) => {
+  const filteredComplaints = pendingComplaints?.complaints?.filter((complaint: any) => {
     const matchesSearch =
       searchQuery === "" ||
-      complaint.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      complaint.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      complaint.type.toLowerCase().includes(searchQuery.toLowerCase())
+      complaint.user?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      complaint.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      complaint.type?.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesTab =
       selectedTab === "all" ||
@@ -356,8 +229,6 @@ export default function ComplaintsDashboardPage() {
   const userComplaints = activeUser ? complaints.filter((complaint) => complaint.userId === activeUser.id) : []
 
   // Get pending complaints for the main dashboard
-  const pendingComplaints = complaints.filter((complaint) => complaint.status === "pending" || !complaint.status)
-
   return (
     <DashboardLayout navItems={navItems} title="Complaints Management" icon={FileWarning}>
       <div className="grid gap-6">
@@ -438,7 +309,7 @@ export default function ComplaintsDashboardPage() {
             <CardHeader>
               <CardTitle>Pending Complaints</CardTitle>
               <CardDescription>
-                {pendingComplaints.length} complaint{pendingComplaints.length !== 1 ? "s" : ""} requiring attention
+                {pendingComplaints?.complaines?.length} complaint{pendingComplaints?.complaines?.length !== 1 ? "s" : ""} requiring attention
               </CardDescription>
               <div className="mt-2 flex items-center gap-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
@@ -453,25 +324,24 @@ export default function ComplaintsDashboardPage() {
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-4">
-                  {pendingComplaints
-                    .filter(
-                      (complaint) =>
+                  {pendingComplaints?.complaines?.
+                    filter(
+                      (complaint: any) =>
                         searchQuery === "" ||
-                        complaint.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        complaint.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        complaint.type.toLowerCase().includes(searchQuery.toLowerCase()),
+                        complaint.user?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        complaint.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        complaint.type?.toLowerCase().includes(searchQuery.toLowerCase()),
                     )
-                    .map((complaint) => (
+                    .map((complaint: any) => (
                       <div key={complaint.id} className="rounded-lg border p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={complaint.userPhoto || "/placeholder.svg"} alt={complaint.userName} />
-                              <AvatarFallback>{complaint.userName.charAt(0)}</AvatarFallback>
+                              <AvatarImage src={complaint.user?.avatar || "/placeholder.svg"} alt={complaint.user?.name} />
+                              <AvatarFallback>{complaint.user?.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">{complaint.userName}</p>
-                              <p className="text-xs text-muted-foreground">{complaint.userId}</p>
+                              <p className="font-medium">{complaint?.user?.name}</p>
                             </div>
                           </div>
                           <Badge
@@ -483,7 +353,7 @@ export default function ComplaintsDashboardPage() {
                                   : "outline"
                             }
                           >
-                            {complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1)}
+                            {complaint.severity?.charAt(0).toUpperCase() + complaint.severity?.slice(1)}
                           </Badge>
                         </div>
 
@@ -496,12 +366,12 @@ export default function ComplaintsDashboardPage() {
                           </Badge>
                         </div>
 
-                        <p className="text-sm">{complaint.description}</p>
+                        <p className="text-sm">{complaint?.description}</p>
 
                         <div className="mt-3 flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">
-                            {new Date(complaint.timestamp).toLocaleDateString()} at{" "}
-                            {new Date(complaint.timestamp).toLocaleTimeString([], {
+                            {new Date(complaint.time).toLocaleDateString()} at{" "}
+                            {new Date(complaint.time).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
@@ -533,12 +403,12 @@ export default function ComplaintsDashboardPage() {
                       </div>
                     ))}
 
-                  {pendingComplaints.filter(
-                    (complaint) =>
+                  {pendingComplaints?.complaines?.filter(
+                    (complaint: any) =>
                       searchQuery === "" ||
-                      complaint.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      complaint.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      complaint.type.toLowerCase().includes(searchQuery.toLowerCase()),
+                      complaint.user?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      complaint.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      complaint.type?.toLowerCase().includes(searchQuery.toLowerCase()),
                   ).length === 0 && (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                       <Check className="h-12 w-12 text-muted-foreground mb-4" />
@@ -567,7 +437,7 @@ export default function ComplaintsDashboardPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={activeUser.photo || "/placeholder.svg"} alt={activeUser.name} />
+                    <AvatarImage src={activeUser.avatar || "/placeholder.svg"} alt={activeUser.name} />
                     <AvatarFallback>{activeUser.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>

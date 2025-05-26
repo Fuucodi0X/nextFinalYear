@@ -35,8 +35,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
-import {gql, useQuery} from "@apollo/client"
-import {io} from "socket.io-client"
+import { ComplainType, UserType } from "@/lib/types"
+import { gql, useQuery } from "@apollo/client"
+import { io } from "socket.io-client"
 
 const navItems = [
   { href: "/dashboard/complaints", label: "Dashboard", icon: Home },
@@ -214,7 +215,7 @@ const mockUsers = [
 export default function ComplaintsDashboardPage() {
   const { toast } = useToast()
   const [activeUser, setActiveUser] = useState<any>(null)
-  const [complaints, setComplaints] = useState<any[]>(mockComplaints)
+  const [complaints, setComplaints] = useState<ComplainType[] | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTab, setSelectedTab] = useState("pending")
   const [showActionDialog, setShowActionDialog] = useState(false)
@@ -223,64 +224,67 @@ export default function ComplaintsDashboardPage() {
   const [actionNotes, setActionNotes] = useState("")
   const [actionDuration, setActionDuration] = useState("7")
   const [scannedCardId, setScannedCardId] = useState<string | null>(null)
-    
-    const {loading, error, data, refetch} = useQuery(USERS_NFCID, {variables: { nfcId: scannedCardId},skip:!scannedCardId})
-    
-    useEffect(() => {
-      const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL 
-  
-      if (!wsurl) {
-        console.error("WebSocket URL is not defined!")
-        return;
-      }
-  
-      const socket = io(wsurl, {
-        transports: ["websocket"]
-      })
-  
-      socket.on("connect", () => {
-        console.log("Connected to websocket!")
-      })
-  
-      socket.on("disconnect", () => {
-        console.log("Disconnected from websocket!")
-      })
-  
-      socket.on("admin_card_registration", async (nfcId: string) => {
-        setScannedCardId(nfcId)
-        const {data} = await refetch({nfcId})
-        handleScan(data)
-    
-        console.log(`Nfc_id: ${nfcId}`)
-      })
-  
-      return () => {
-        socket.disconnect()
-      }
-    }, [])
 
- const handleScan = (userData: any) => {
-     // Simulate finding a user based on card ID
-     // In a real app, this would query a database
-     console.log("data: ", userData)
-    
-     const userr = {
-       id: userData.nfcCardsByNfcId?.assignedCards[0]?.user.id ? userData.nfcCardsByNfcId.assignedCards[0]?.user.id : "-",
-       name: userData.nfcCardsByNfcId?.assignedCards[0]?.user.name ? userData.nfcCardsByNfcId.assignedCards[0]?.user.name : "-",
-       email: userData.nfcCardsByNfcId?.assignedCards[0]?.user.email ? userData.nfcCardsByNfcId.assignedCards[0]?.user.email : "-",
-       phone: userData.nfcCardsByNfcId?.assignedCards[0]?.user.phoneNumber ? userData.nfcCardsByNfcId.assignedCards[0]?.user.phoneNumber : "-",
-       position: userData.nfcCardsByNfcId?.assignedCards[0]?.user.role ? userData.nfcCardsByNfcId.assignedCards[0]?.user.role : "-",
-       photo: userData.nfcCardsByNfcId?.assignedCards[0]?.user.avatar ? userData.nfcCardsByNfcId.assignedCards[0]?.user.avatar : "-",
-     }
-     const user = mockUsers[Math.floor(Math.random() * mockUsers.length)]
- 
-     setActiveUser(userr)
+  const { loading, error, data, refetch } = useQuery(USERS_NFCID, { variables: { nfcId: scannedCardId }, skip: !scannedCardId })
+
+  useEffect(() => {
+    const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL
+
+    if (!wsurl) {
+      console.error("WebSocket URL is not defined!")
+      return;
+    }
+
+    const socket = io(wsurl, {
+      transports: ["websocket"]
+    })
+
+    socket.on("connect", () => {
+      console.log("Connected to websocket!")
+    })
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from websocket!")
+    })
+
+    socket.on("admin_card_registration", async (nfcId: string) => {
+      setScannedCardId(nfcId)
+      const { data } = await refetch({ nfcId })
+      handleScan(data)
+
+      console.log(`Nfc_id: ${nfcId}`)
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
+
+  const handleScan = (userData: any) => {
+    // Simulate finding a user based on card ID
+    // In a real app, this would query a database
+    console.log("data: ", userData)
+
+    const userr = {
+      id: userData.nfcCardsByNfcId?.assignedCards[0]?.user.id ? userData.nfcCardsByNfcId.assignedCards[0]?.user.id : "-",
+      name: userData.nfcCardsByNfcId?.assignedCards[0]?.user.name ? userData.nfcCardsByNfcId.assignedCards[0]?.user.name : "-",
+      email: userData.nfcCardsByNfcId?.assignedCards[0]?.user.email ? userData.nfcCardsByNfcId.assignedCards[0]?.user.email : "-",
+      phone: userData.nfcCardsByNfcId?.assignedCards[0]?.user.phoneNumber ? userData.nfcCardsByNfcId.assignedCards[0]?.user.phoneNumber : "-",
+      position: userData.nfcCardsByNfcId?.assignedCards[0]?.user.role ? userData.nfcCardsByNfcId.assignedCards[0]?.user.role : "-",
+      photo: userData.nfcCardsByNfcId?.assignedCards[0]?.user.avatar ? userData.nfcCardsByNfcId.assignedCards[0]?.user.avatar : "-",
+    }
+    const user = mockUsers[Math.floor(Math.random() * mockUsers.length)]
+
+    setActiveUser(userr)
 
     toast({
       title: "ID Card Scanned",
       description: `${user.name} (${user.id}) scanned successfully`,
     })
   }
+  // const handleSetUser = (user: UserType) => {
+  //   setUserData(user)
+  // }
 
   const handleComplaintAction = (complaint: any, action: "warning" | "suspension" | "dismiss") => {
     setSelectedComplaint(complaint)
@@ -292,7 +296,7 @@ export default function ComplaintsDashboardPage() {
 
   const submitAction = () => {
     // Update the complaint status
-    const updatedComplaints = complaints.map((comp) => {
+    const updatedComplaints = complaints?.map((comp) => {
       if (comp.id === selectedComplaint.id) {
         return {
           ...comp,
@@ -304,8 +308,8 @@ export default function ComplaintsDashboardPage() {
       }
       return comp
     })
-
-    setComplaints(updatedComplaints)
+    if (updatedComplaints)
+      setComplaints(updatedComplaints)
 
     // Update user warning/suspension count if needed
     if (activeUser && selectedComplaint.userId === activeUser.id) {
@@ -336,10 +340,10 @@ export default function ComplaintsDashboardPage() {
   }
 
   // Filter complaints based on search query and selected tab
-  const filteredComplaints = complaints.filter((complaint) => {
+  const filteredComplaints = complaints?.filter((complaint) => {
     const matchesSearch =
       searchQuery === "" ||
-      complaint.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // complaint.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       complaint.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       complaint.type.toLowerCase().includes(searchQuery.toLowerCase())
 
@@ -369,7 +373,7 @@ export default function ComplaintsDashboardPage() {
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{complaints.length}</div>
+              <div className="text-2xl font-bold">{complaints?.length ?? 0}</div>
               <p className="text-xs text-muted-foreground">+3 new today</p>
             </CardContent>
           </Card>
@@ -381,7 +385,7 @@ export default function ComplaintsDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {complaints.filter((c) => c.status === "pending" || !c.status).length}
+                {complaints?.filter((c) => c.status === "pending" || !c.status).length ?? 0}
               </div>
               <p className="text-xs text-muted-foreground">Requires attention</p>
             </CardContent>
@@ -393,7 +397,9 @@ export default function ComplaintsDashboardPage() {
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{complaints.filter((c) => c.resolution === "warning").length}</div>
+              {/*
+              <div className="text-2xl font-bold">{complaints?.filter((c) => c.resolution === "warning").length}</div>
+              */}
               <p className="text-xs text-muted-foreground">This month</p>
             </CardContent>
           </Card>
@@ -404,7 +410,9 @@ export default function ComplaintsDashboardPage() {
               <Ban className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
+              {/*
               <div className="text-2xl font-bold">{complaints.filter((c) => c.resolution === "suspension").length}</div>
+              */}
               <p className="text-xs text-muted-foreground">This month</p>
             </CardContent>
           </Card>
@@ -419,7 +427,7 @@ export default function ComplaintsDashboardPage() {
               <CardDescription>Scan a user's ID card to view their details and complaints</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center">
-              <CardScanner onCardScanned={handleScan} />
+              <CardScanner scannedCardId={handleScan} setUserData={setUserData} />
 
               {activeUser && (
                 <div className="mt-4 w-full rounded-lg bg-muted p-3 text-center">
@@ -457,7 +465,7 @@ export default function ComplaintsDashboardPage() {
                     .filter(
                       (complaint) =>
                         searchQuery === "" ||
-                        complaint.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        // complaint.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         complaint.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         complaint.type.toLowerCase().includes(searchQuery.toLowerCase()),
                     )
@@ -465,6 +473,7 @@ export default function ComplaintsDashboardPage() {
                       <div key={complaint.id} className="rounded-lg border p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
+                            {/*
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={complaint.userPhoto || "/placeholder.svg"} alt={complaint.userName} />
                               <AvatarFallback>{complaint.userName.charAt(0)}</AvatarFallback>
@@ -473,6 +482,7 @@ export default function ComplaintsDashboardPage() {
                               <p className="font-medium">{complaint.userName}</p>
                               <p className="text-xs text-muted-foreground">{complaint.userId}</p>
                             </div>
+                            */}
                           </div>
                           <Badge
                             variant={
@@ -540,16 +550,16 @@ export default function ComplaintsDashboardPage() {
                       complaint.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                       complaint.type.toLowerCase().includes(searchQuery.toLowerCase()),
                   ).length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <Check className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="font-medium mb-1">No Pending Complaints</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {searchQuery
-                          ? "No complaints match your search criteria"
-                          : "All complaints have been processed"}
-                      </p>
-                    </div>
-                  )}
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Check className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="font-medium mb-1">No Pending Complaints</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {searchQuery
+                            ? "No complaints match your search criteria"
+                            : "All complaints have been processed"}
+                        </p>
+                      </div>
+                    )}
                 </div>
               </ScrollArea>
             </CardContent>

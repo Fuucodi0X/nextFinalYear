@@ -9,7 +9,8 @@ export type UserType = {
   complaines: {
     description: string
     severity: string,
-    type: string
+    type: string,
+    status: string
   }[][]
   assignedDormitories: [
     {
@@ -26,5 +27,14 @@ export type UserType = {
 export type ComplainType = {
   description: string
   severity: string,
-  type: string
+  type: string,
+  status: string
+  resolutionNotes: string
+  resolution: string
+  resolutionDate: string
+  timestamp: string
+  source: string
+  id: string
+  userName: string
 }
+export type ComplainWithUserType = ComplainType & { userName: string }

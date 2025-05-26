@@ -1,36 +1,124 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ContactIcon as ContactlessIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { io } from "socket.io-client"
+import { gql, useQuery } from "@apollo/client"
+import { useToast } from "./ui/use-toast"
+import { UserType } from "@/lib/types"
 
 interface CardScannerProps {
-  onCardScanned: (cardId: string) => void
+  scannedCardId: (cardId: string) => void
   isLoading?: boolean
+  setUserData: (user: UserType) => void
 }
+const getUserQuery = gql`query GetUserQuery($nfcId: Text!) {
+      nfcCardsByNfcId(nfcId: $nfcId) {
+        assignedCards {
+          user {
+            email
+            avatar
+            id
+            name
+            phoneNumber
+            role
+            complaines {
+              description
+              severity
+              type:complaintType
+            }
+            assignedDormitories {
+              dormId
+              status
+              dormitoryRoom {
+                roomNumber
+                buildingNumber
+                floorNumber
+              }
+          }
+         }
+       }
+    }
+  }`
 
-export function CardScanner({ onCardScanned, isLoading = false }: CardScannerProps) {
+export function CardScanner({ scannedCardId, setUserData, isLoading = false }: CardScannerProps) {
   const [isScanning, setIsScanning] = useState(false)
+  const [cardError, setCardError] = useState<string | null>()
+  const { data, loading, error, refetch } = useQuery(getUserQuery, { variables: { nfcId: scannedCardId }, skip: !scannedCardId })
+  const { toast } = useToast()
 
-  const handleScan = () => {
-    if (isScanning || isLoading) return
+  useEffect(() => {
+    // Connecting to the websocket
+    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3001";
+    console.log("Attempting to connect to WebSocket URL:", wsUrl); // <-- Add this log
 
-    setIsScanning(true)
+    if (!wsUrl) {
+      console.error("WebSocket URL is not defined!");
+      return;
+    }
+    const socket = io(wsUrl, {
+      transports: ["websocket"],
+    });
 
-    // Simulate scanning process
-    setTimeout(() => {
-      // Generate a random card ID from predefined list for demo
-      const cardIds = ["CARD-1001", "CARD-1002", "CARD-1003", "CARD-1004", "CARD-1005"]
-      const randomCardId = cardIds[Math.floor(Math.random() * cardIds.length)]
+    socket.on("connect", () => {
+      toast({
+        title: "Web socket connected",
+        description: `Connected`,
+      })
+      console.log("Connected to websocket");
+    });
 
-      onCardScanned(randomCardId)
+    socket.on("disconnect", () => {
+      toast({
+        title: "Web socket disconnected",
+        description: `Disconnected`,
+      })
+      console.log("Disconnected from websocket");
+    });
+
+    socket.on("admin_card_registration", async (nfcId: string) => {
+      scannedCardId(nfcId)
+      setCardError(null)
+      setIsScanning(true)
+      console.log(nfcId)
+
+      const { data } = await refetch({ nfcId })
+      if (!data.nfcCardsByNfcId) {
+        return (
+          toast({
+            title: "Nfc id not registored ",
+            description: `This nfc Id:${nfcId} is not registered`,
+          })
+        )
+      }
+      if (!data.nfcCardsByNfcId.assignedCards[0]) {
+        return (
+          toast({
+            title: "NfcId not assigned to user",
+            description: `This nfc Id:${nfcId} is not assigned to user`,
+          })
+        )
+      }
+      const userData = data.nfcCardsByNfcId.assignedCards[0].user
+      setUserData(userData as UserType)
+
+      console.log(userData)
+      toast({
+        title: "Id scanned",
+        description: `registed id:${nfcId} user:${userData.name}`,
+      })
       setIsScanning(false)
-    }, 2000)
-  }
+      console.log(`Nfc card ID: ${nfcId}`)
+    });
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <div className="relative w-32 h-32 flex items-center justify-center cursor-pointer" onClick={handleScan}>
+      <div className="relative w-32 h-32 flex items-center justify-center cursor-pointer">
         <div
           className={`absolute inset-0 bg-primary/10 rounded-full ${isScanning || isLoading ? "animate-ping" : ""}`}
         ></div>
@@ -39,9 +127,6 @@ export function CardScanner({ onCardScanned, isLoading = false }: CardScannerPro
         ></div>
         <ContactlessIcon className="w-16 h-16 text-primary relative z-10" />
       </div>
-      <Button variant="outline" className="mt-4" onClick={handleScan} disabled={isScanning || isLoading}>
-        {isScanning ? "Scanning..." : isLoading ? "Processing..." : "Scan Card"}
-      </Button>
     </div>
   )
 }

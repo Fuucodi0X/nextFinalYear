@@ -40,6 +40,7 @@ const GET_ALL_USERS = gql`query users {
     name
     avatar
     email
+    role
   }
   nfcCardsCount: nfcCardsAggregate{
     num: _count
@@ -190,7 +191,7 @@ export default function AdminDashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userData.users.length}</div>
+            <div className="text-2xl font-bold">{userData.users?.length}</div>
             <p className="text-xs text-muted-foreground">Across all departments</p>
           </CardContent>
         </Card>
@@ -201,7 +202,7 @@ export default function AdminDashboardPage() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userData.nfcCardsCount.num - userData.assignedCardsCount.num}</div>
+            <div className="text-2xl font-bold">{userData.nfcCardsCount?.num - userData.assignedCardsCount?.num}</div>
             <p className="text-xs text-muted-foreground">Available for assignment</p>
           </CardContent>
         </Card>
@@ -230,7 +231,7 @@ export default function AdminDashboardPage() {
 
         <TabsContent value="cards">
           <CardAssignment
-            users={users.filter((user) => !user.cardAssigned)}
+            users={userData?.users}
             unassignedCards={unassignedCards}
             onAssign={handleCardAssignment}
           />

@@ -104,7 +104,7 @@ export default function CardsPage() {
   const [isWsConnected, setIsWsConnected] = useState(false)
   const [socket, setSocket] = useState<Socket | undefined>(undefined)
   const [addCard, { loading: addingCard, error: addCardError}] = useMutation(ADD_NFC)
-  const { loading: getCardsLoading, error: getCardsError, data: cardsData} = useQuery(GET_ALL_CARDS)
+  const { loading: getCardsLoading, error: getCardsError, data: cardsData, refetch: refetchUsers} = useQuery(GET_ALL_CARDS)
 
   // Cards data
   if(getCardsLoading) return <Loading />
@@ -165,6 +165,8 @@ export default function CardsPage() {
         title: "Card Registered Successfully",
         description: `Card ${scannedCardId} has been registered in the system.`,
       })
+
+      refetchUsers()
 
       // Close dialog and reset state
       if(!err) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   AlertTriangle,
   Ban,
@@ -36,6 +36,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
 import { ComplainType, UserType } from "@/lib/types"
+import { gql, useQuery } from "@apollo/client"
+import { io } from "socket.io-client"
 
 const navItems = [
   { href: "/dashboard/complaints", label: "Dashboard", icon: Home },
@@ -43,6 +45,22 @@ const navItems = [
   { href: "/dashboard/complaints/history", label: "History", icon: MessageSquare },
   { href: "/dashboard/complaints/settings", label: "Settings", icon: Settings },
 ]
+
+const USERS_NFCID = gql`query UsersByNfc($nfcId: Text!) {
+  nfcCardsByNfcId(nfcId: $nfcId) {
+    assignedCards {
+      user {
+        avatar
+        email
+        id
+        name
+        role
+        phoneNumber
+      }
+    }
+  }
+}`
+
 
 // Mock complaints data
 const mockComplaints = [
@@ -205,20 +223,68 @@ export default function ComplaintsDashboardPage() {
   const [actionType, setActionType] = useState<"warning" | "suspension" | "dismiss">("warning")
   const [actionNotes, setActionNotes] = useState("")
   const [actionDuration, setActionDuration] = useState("7")
-  const [userData, setUserData] = useState<UserType | null>(null)
+  const [scannedCardId, setScannedCardId] = useState<string | null>(null)
 
-  const handleScan = (cardId: string) => {
+  const { loading, error, data, refetch } = useQuery(USERS_NFCID, { variables: { nfcId: scannedCardId }, skip: !scannedCardId })
+
+  useEffect(() => {
+    const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL
+
+    if (!wsurl) {
+      console.error("WebSocket URL is not defined!")
+      return;
+    }
+
+    const socket = io(wsurl, {
+      transports: ["websocket"]
+    })
+
+    socket.on("connect", () => {
+      console.log("Connected to websocket!")
+    })
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from websocket!")
+    })
+
+    socket.on("admin_card_registration", async (nfcId: string) => {
+      setScannedCardId(nfcId)
+      const { data } = await refetch({ nfcId })
+      handleScan(data)
+
+      console.log(`Nfc_id: ${nfcId}`)
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
+
+  const handleScan = (userData: any) => {
     // Simulate finding a user based on card ID
+    // In a real app, this would query a database
+    console.log("data: ", userData)
+
+    const userr = {
+      id: userData.nfcCardsByNfcId?.assignedCards[0]?.user.id ? userData.nfcCardsByNfcId.assignedCards[0]?.user.id : "-",
+      name: userData.nfcCardsByNfcId?.assignedCards[0]?.user.name ? userData.nfcCardsByNfcId.assignedCards[0]?.user.name : "-",
+      email: userData.nfcCardsByNfcId?.assignedCards[0]?.user.email ? userData.nfcCardsByNfcId.assignedCards[0]?.user.email : "-",
+      phone: userData.nfcCardsByNfcId?.assignedCards[0]?.user.phoneNumber ? userData.nfcCardsByNfcId.assignedCards[0]?.user.phoneNumber : "-",
+      position: userData.nfcCardsByNfcId?.assignedCards[0]?.user.role ? userData.nfcCardsByNfcId.assignedCards[0]?.user.role : "-",
+      photo: userData.nfcCardsByNfcId?.assignedCards[0]?.user.avatar ? userData.nfcCardsByNfcId.assignedCards[0]?.user.avatar : "-",
+    }
     const user = mockUsers[Math.floor(Math.random() * mockUsers.length)]
-    setActiveUser(user)
+
+    setActiveUser(userr)
+
     toast({
       title: "ID Card Scanned",
       description: `${user.name} (${user.id}) scanned successfully`,
     })
   }
-  const handleSetUser = (user: UserType) => {
-    setUserData(user)
-  }
+  // const handleSetUser = (user: UserType) => {
+  //   setUserData(user)
+  // }
 
   const handleComplaintAction = (complaint: any, action: "warning" | "suspension" | "dismiss") => {
     setSelectedComplaint(complaint)
@@ -366,10 +432,10 @@ export default function ComplaintsDashboardPage() {
               {activeUser && (
                 <div className="mt-4 w-full rounded-lg bg-muted p-3 text-center">
                   <p className="font-medium">{activeUser.name}</p>
-                  <p className="text-sm text-muted-foreground">{activeUser.id}</p>
-                  <Badge variant={activeUser.status === "active" ? "outline" : "destructive"} className="mt-2">
-                    {activeUser.status.charAt(0).toUpperCase() + activeUser.status.slice(1)}
-                  </Badge>
+                  <p className="text-sm text-muted-foreground">{activeUser?.id}</p>
+                  {/* <Badge variant={activeUser.status === "active" ? "outline" : "destructive"} className="mt-2">
+                    {activeUser?.status?.charAt(0).toUpperCase() + activeUser?.status?.slice(1)}
+                  </Badge> */}
                 </div>
               )}
             </CardContent>
@@ -520,14 +586,14 @@ export default function ComplaintsDashboardPage() {
                       {activeUser.department} - {activeUser.position}
                     </p>
                     <div className="mt-1 flex items-center gap-2">
-                      <Badge variant={activeUser.status === "active" ? "outline" : "destructive"}>
+                      {/* <Badge variant={activeUser.status === "active" ? "outline" : "destructive"}>
                         {activeUser.status.charAt(0).toUpperCase() + activeUser.status.slice(1)}
-                      </Badge>
-                      {activeUser.warningCount > 0 && (
+                      </Badge> */}
+                      {/* {activeUser.warningCount > 0 && (
                         <Badge variant="secondary">
                           {activeUser.warningCount} Warning{activeUser.warningCount > 1 ? "s" : ""}
                         </Badge>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </div>

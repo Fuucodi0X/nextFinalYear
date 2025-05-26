@@ -23,29 +23,31 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, ContactIcon as ContactlessIcon } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { io, Socket } from "socket.io-client";
-import { gql, useMutation } from "@apollo/client"
+import { gql, useMutation, useQuery } from "@apollo/client"
+import Loading from "@/components/ui/loading"
+import { NfcCards } from "@/lib/apollo/gql/graphql"
 
 // Initial card data
 const initialCards = [
-  { id: "CARD-1001", status: "Assigned", assignedTo: "Admin User", department: "IT", lastUsed: "2023-05-10 09:15" },
+  { id: "CARD-1001", status: "Assigned", assignedTo: "Admin User", role: "IT", lastUsed: "2023-05-10 09:15" },
   {
     id: "CARD-1002",
     status: "Assigned",
     assignedTo: "Security Officer",
-    department: "Security",
+    role: "Security",
     lastUsed: "2023-05-10 08:30",
   },
   {
     id: "CARD-1003",
     status: "Assigned",
     assignedTo: "Dormitory Manager",
-    department: "Housing",
+    role: "Housing",
     lastUsed: "2023-05-09 17:45",
   },
-  { id: "CARD-2001", status: "Unassigned", assignedTo: "-", department: "-", lastUsed: "-" },
-  { id: "CARD-2002", status: "Unassigned", assignedTo: "-", department: "-", lastUsed: "-" },
-  { id: "CARD-2003", status: "Unassigned", assignedTo: "-", department: "-", lastUsed: "-" },
-  { id: "CARD-3001", status: "Inactive", assignedTo: "-", department: "-", lastUsed: "2023-04-15 14:20" },
+  { id: "CARD-2001", status: "Unassigned", assignedTo: "-", role: "-", lastUsed: "-" },
+  { id: "CARD-2002", status: "Unassigned", assignedTo: "-", role: "-", lastUsed: "-" },
+  { id: "CARD-2003", status: "Unassigned", assignedTo: "-", role: "-", lastUsed: "-" },
+  { id: "CARD-3001", status: "Inactive", assignedTo: "-", role: "-", lastUsed: "2023-04-15 14:20" },
 ]
 
 const navItems = [
@@ -53,7 +55,7 @@ const navItems = [
   // { href: "/dashboard/admin/users", label: "Users", icon: Users },
   { href: "/dashboard/admin/cards", label: "Cards", icon: CreditCard },
   { href: "/dashboard/admin/courses", label: "Courses", icon: BookOpen },
-  { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
+  // { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
 ]
 
 // Queries and Mutations
@@ -63,6 +65,30 @@ const ADD_NFC = gql`mutation registerCard($nfcId: Text!) {
       id
       nfcId
     }
+  }
+}`;
+
+const GET_ALL_CARDS = gql`query registerdCards {
+  nfcCards {
+    id
+    nfcId
+    assignedCardsAggregate{
+      _count
+    }
+    assignedCards{
+      user {
+        name
+				email
+        avatar
+        role
+      }
+    }
+  }
+  nfcCardsCount: nfcCardsAggregate{
+    num: _count
+  }
+  assignedCardsCount: assignedCardsAggregate{
+    num: _count
   }
 }`
 
@@ -77,33 +103,36 @@ export default function CardsPage() {
   const [isRegistering, setIsRegistering] = useState(false)
   const [isWsConnected, setIsWsConnected] = useState(false)
   const [socket, setSocket] = useState<Socket | undefined>(undefined)
-  const [addCard, { data, loading, error}] = useMutation(ADD_NFC)
+  const [addCard, { loading: addingCard, error: addCardError}] = useMutation(ADD_NFC)
+  const { loading: getCardsLoading, error: getCardsError, data: cardsData, refetch: refetchUsers} = useQuery(GET_ALL_CARDS)
+
+  // Cards data
+  if(getCardsLoading) return <Loading />
 
   // Filter cards based on search query
-  const filteredCards = cards.filter((card) => {
+  const filteredCards = cardsData.nfcCards.filter((card: NfcCards) => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
     return (
       card.id.toLowerCase().includes(query) ||
-      card.status.toLowerCase().includes(query) ||
-      card.assignedTo.toLowerCase().includes(query) ||
-      card.department.toLowerCase().includes(query)
+      (card.assignedCardsAggregate._count ? "Assigned": "Unassigned").toLowerCase().includes(query) ||
+      (card.assignedCards[0]?.user?.name ? card.assignedCards[0]?.user?.name : "-").toLowerCase().includes(query) ||
+      (card.assignedCards[0]?.user?.role ? card.assignedCards[0]?.user?.role : "-").toLowerCase().includes(query)
     )
   })
 
   // Count cards by status
-  const totalCards = cards.length
-  const assignedCards = cards.filter((card) => card.status === "Assigned").length
-  const unassignedCards = cards.filter((card) => card.status === "Unassigned").length
-  const inactiveCards = cards.filter((card) => card.status === "Inactive").length
+  const totalCards = cardsData.nfcCardsCount.num
+  const assignedCards = cardsData.assignedCardsCount.num
+  const unassignedCards = cardsData.nfcCardsCount.num - cardsData.assignedCardsCount.num
 
   const registerNfcCard = () => {
     const err = addCard({ variables: { nfcId: scannedCardId } }).then(() => {
-      return error
+      return addCardError
     }).finally( () => {
-      if (error) {
-        setCardError(error.message)
-        console.log("Error: ", error?.message)
+      if (addCardError) {
+        setCardError(addCardError.message)
+        console.log("Error: ", addCardError?.message)
       }
     }
     )
@@ -126,7 +155,7 @@ export default function CardsPage() {
         id: scannedCardId,
         status: "Unassigned",
         assignedTo: "-",
-        department: "-",
+        role: "-",
         lastUsed: "-",
       }
 
@@ -136,6 +165,8 @@ export default function CardsPage() {
         title: "Card Registered Successfully",
         description: `Card ${scannedCardId} has been registered in the system.`,
       })
+
+      refetchUsers()
 
       // Close dialog and reset state
       if(!err) {
@@ -152,6 +183,13 @@ export default function CardsPage() {
     } finally {
       setIsRegistering(false)
     }
+  }
+
+  const cancelRegistration = () => {
+    setIsRegisterDialogOpen(false);
+    closeWebsocket();
+    setCardError(null);
+    setScannedCardId("");
   }
   
   const connectWebsocket = () => {
@@ -187,13 +225,13 @@ export default function CardsPage() {
     setSocket(socket)
   }
 
-  const closeWebsocket = (socket: Socket | undefined) => {
+  const closeWebsocket = () => {
     if (socket) socket.disconnect()
   }
 
   const handelRegisterCardScanner = (isOpen: boolean) => {
     setIsRegisterDialogOpen(isOpen)
-    isOpen ? connectWebsocket() : closeWebsocket(socket)
+    isOpen ? connectWebsocket() : closeWebsocket()
   }
 
   return (
@@ -252,7 +290,7 @@ export default function CardsPage() {
                 </div>
 
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => {setIsRegisterDialogOpen(false); closeWebsocket(socket);}}>
+                  <Button variant="outline" onClick={cancelRegistration}>
                     Cancel
                   </Button>
                   <Button onClick={handleRegisterCard} disabled={!scannedCardId || !!cardError || isRegistering}>
@@ -269,7 +307,6 @@ export default function CardsPage() {
               <TabsTrigger value="all">All Cards</TabsTrigger>
               <TabsTrigger value="assigned">Assigned</TabsTrigger>
               <TabsTrigger value="unassigned">Unassigned</TabsTrigger>
-              <TabsTrigger value="inactive">Inactive</TabsTrigger>
             </TabsList>
             <div className="flex space-x-2">
               <div className="relative">
@@ -324,18 +361,6 @@ export default function CardsPage() {
                   </p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Inactive Cards</CardTitle>
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{inactiveCards}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {((inactiveCards / totalCards) * 100).toFixed(1)}% of total cards
-                  </p>
-                </CardContent>
-              </Card>
             </div>
             <Card>
               <CardHeader>
@@ -349,40 +374,29 @@ export default function CardsPage() {
                       <TableHead>Card ID</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Assigned To</TableHead>
-                      <TableHead>Department</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead>Last Used</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCards.map((card) => (
+                    {filteredCards.map((card: NfcCards) => (
                       <TableRow key={card.id}>
                         <TableCell className="font-medium">{card.id}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
-                              card.status === "Assigned"
+                              (card.assignedCardsAggregate._count ? "Assigned": "Unassigned") === "Assigned"
                                 ? "default"
-                                : card.status === "Unassigned"
+                                : (card.assignedCardsAggregate._count ? "Assigned": "Unassigned") === "Unassigned"
                                   ? "outline"
                                   : "destructive"
                             }
                           >
-                            {card.status}
+                            {card.assignedCardsAggregate._count ? "Assigned": "Unassigned"}
                           </Badge>
                         </TableCell>
-                        <TableCell>{card.assignedTo}</TableCell>
-                        <TableCell>{card.department}</TableCell>
-                        <TableCell>{card.lastUsed}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm" disabled={card.status === "Inactive"}>
-                            {card.status === "Assigned"
-                              ? "Unassign"
-                              : card.status === "Unassigned"
-                                ? "Assign"
-                                : "Activate"}
-                          </Button>
-                        </TableCell>
+                        <TableCell>{card.assignedCards[0]?.user?.name ? card.assignedCards[0]?.user?.name : "-"}</TableCell>
+                        <TableCell>{card.assignedCards[0]?.user?.role ? card.assignedCards[0]?.user?.role : "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -403,28 +417,21 @@ export default function CardsPage() {
                       <TableHead>Card ID</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Assigned To</TableHead>
-                      <TableHead>Department</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead>Last Used</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCards
-                      .filter((card) => card.status === "Assigned")
-                      .map((card) => (
+                      .filter((card: NfcCards) => (card.assignedCardsAggregate._count ? "Assigned": "Unassigned") === "Assigned")
+                      .map((card: NfcCards) => (
                         <TableRow key={card.id}>
                           <TableCell className="font-medium">{card.id}</TableCell>
                           <TableCell>
-                            <Badge variant="default">{card.status}</Badge>
+                            <Badge variant="default">{card.assignedCardsAggregate._count ? "Assigned": "Unassigned"}</Badge>
                           </TableCell>
-                          <TableCell>{card.assignedTo}</TableCell>
-                          <TableCell>{card.department}</TableCell>
-                          <TableCell>{card.lastUsed}</TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="sm">
-                              Unassign
-                            </Button>
-                          </TableCell>
+                          <TableCell>{card.assignedCards[0]?.user?.name ? card.assignedCards[0]?.user?.name : "-"}</TableCell>
+                          <TableCell>{card.assignedCards[0]?.user?.role ? card.assignedCards[0]?.user?.role : "-"}</TableCell>
                         </TableRow>
                       ))}
                   </TableBody>
@@ -445,70 +452,21 @@ export default function CardsPage() {
                       <TableHead>Card ID</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Assigned To</TableHead>
-                      <TableHead>Department</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead>Last Used</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCards
-                      .filter((card) => card.status === "Unassigned")
-                      .map((card) => (
+                      .filter((card: NfcCards) => (card.assignedCardsAggregate._count ? "Assigned": "Unassigned") === "Unassigned")
+                      .map((card: NfcCards) => (
                         <TableRow key={card.id}>
                           <TableCell className="font-medium">{card.id}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{card.status}</Badge>
+                            <Badge variant="outline">{card.assignedCardsAggregate._count ? "Assigned": "Unassigned"}</Badge>
                           </TableCell>
-                          <TableCell>{card.assignedTo}</TableCell>
-                          <TableCell>{card.department}</TableCell>
-                          <TableCell>{card.lastUsed}</TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="sm">
-                              Assign
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="inactive" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Inactive Cards</CardTitle>
-                <CardDescription>Cards that have been deactivated</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Card ID</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Assigned To</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Last Used</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCards
-                      .filter((card) => card.status === "Inactive")
-                      .map((card) => (
-                        <TableRow key={card.id}>
-                          <TableCell className="font-medium">{card.id}</TableCell>
-                          <TableCell>
-                            <Badge variant="destructive">{card.status}</Badge>
-                          </TableCell>
-                          <TableCell>{card.assignedTo}</TableCell>
-                          <TableCell>{card.department}</TableCell>
-                          <TableCell>{card.lastUsed}</TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="sm">
-                              Activate
-                            </Button>
-                          </TableCell>
+                          <TableCell>{card.assignedCards[0]?.user?.name ? card.assignedCards[0]?.user?.name : "-"}</TableCell>
+                          <TableCell>{card.assignedCards[0]?.user?.role ? card.assignedCards[0]?.user?.role : "-"}</TableCell>
                         </TableRow>
                       ))}
                   </TableBody>

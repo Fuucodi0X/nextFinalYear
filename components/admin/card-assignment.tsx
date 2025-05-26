@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, Search, User } from "lucide-react"
 import { ContactIcon as ContactlessIcon } from "lucide-react"
 
@@ -15,6 +15,8 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { io } from "socket.io-client"
+import { gql, useQuery } from "@apollo/client"
 
 interface CardAssignmentProps {
   users: any[]
@@ -22,16 +24,39 @@ interface CardAssignmentProps {
   onAssign: (userId: string, cardId: string) => void
 }
 
-// Mock database of all cards in the system
-const ALL_CARDS = [
-  { id: "CARD-1001", status: "assigned", userId: "ADM-1001" },
-  { id: "CARD-1002", status: "assigned", userId: "SEC-1001" },
-  { id: "CARD-1003", status: "assigned", userId: "DOR-1001" },
-  { id: "CARD-2001", status: "unassigned", userId: null },
-  { id: "CARD-2002", status: "unassigned", userId: null },
-  { id: "CARD-2003", status: "unassigned", userId: null },
-  { id: "CARD-3001", status: "inactive", userId: null },
-]
+const GET_ALL_USERS = gql`query users {
+  users {
+    id
+    name
+    avatar
+    email
+    role
+  }
+  nfcCardsCount: nfcCardsAggregate{
+    num: _count
+  }
+  assignedCardsCount: assignedCardsAggregate{
+    num: _count
+  }
+}`
+
+const USERS_BY_NFC = gql`query usersByNfcId($nfcId: Text!) {
+  data: assignedCardsByNfcId(nfcId: $nfcId) {
+    user {
+      avatar
+      name
+      email
+      phoneNumber
+      role
+    }
+  } 
+}`
+
+const ASSIGN_USER = gql`mutation assigneCard ($nfcId: Text!, $userId: Uuid!) {
+  insertAssignedCards(objects: {nfcId: $nfcId, userId: $userId}) {
+    affectedRows
+  }
+}`
 
 export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignmentProps) {
   const { toast } = useToast()
@@ -41,6 +66,10 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
   const [isScanning, setIsScanning] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
+  const [isWsConnected, setIsWsConnected] = useState(false)
+  const [nfcId, setNfcId] = useState<string | null>(null)
+  const {data: usersData, refetch: refetchUsersData} = useQuery(GET_ALL_USERS)
+  const {data: userData, refetch: refetchUserData} = useQuery(USERS_BY_NFC, {variables: {nfcId: nfcId, skip: !nfcId}})
 
   // Filter users based on search query
   const filteredUsers = users.filter((user) => {
@@ -54,47 +83,66 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
     )
   })
 
-  const handleScanCard = () => {
-    setIsScanning(true)
-    setCardError(null)
+  // const checkCard = async(nfcId: string) => {
+  //   const {data, error} = await refetchNfcData({nfcId: nfcId})
+  //   if(data.card.totalAssigned.count == 0) {
+  //     setSelectedCard(nfcId)
+  //     setIsScanning(false)
+  //   } else {
+  //       setCardError("This card is already assigned to another user.")
+  //       toast({
+  //         title: "Card Inactive",
+  //         description: "This card is inactive and cannot be assigned.",
+  //         variant: "destructive",
+  //       })
+  //   }
+  // }
 
-    // Simulate scanning process
-    setTimeout(() => {
-      // Randomly select a card from ALL_CARDS to simulate scanning
-      const randomIndex = Math.floor(Math.random() * ALL_CARDS.length)
-      const scannedCard = ALL_CARDS[randomIndex]
-      setSelectedCard(scannedCard.id)
-      setIsScanning(false)
+  useEffect(() => {
+    // Connecting to the websocket
+    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3001";
+    console.log("Attempting to connect to WebSocket URL:", wsUrl); // <-- Add this log
+    
+    if (!wsUrl) {
+      console.error("WebSocket URL is not defined!");
+      return;
+    }
+    
+    const socket = io(wsUrl, {
+      transports: ["websocket"],
+    });
 
-      // Check if card is registered
-      if (scannedCard.status === "inactive") {
-        setCardError("This card is inactive and cannot be assigned.")
-        toast({
-          title: "Card Inactive",
-          description: "This card is inactive and cannot be assigned.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Check if card is already assigned
-      if (scannedCard.status === "assigned") {
-        const assignedUser = users.find((u) => u.id === scannedCard.userId)
-        setCardError(`This card is already assigned to ${assignedUser ? assignedUser.name : "another user"}.`)
-        toast({
-          title: "Card Already Assigned",
-          description: `This card is already assigned to ${assignedUser ? assignedUser.name : "another user"}.`,
-          variant: "destructive",
-        })
-        return
-      }
-
+    socket.on("connect", () => {
+      setIsWsConnected(true);
       toast({
-        title: "Card Scanned",
-        description: `NFC Card ${scannedCard.id} detected and ready for assignment`,
+        title: "Websocket",
+        description: `Connected to websocket.`,
       })
-    }, 2000)
-  }
+    });
+
+    socket.on("disconnect", () => {
+      setIsWsConnected(false);
+      toast({
+        title: "Websocket",
+        description: "Disconnected from websocket.",
+        variant: "destructive",
+      })
+    });
+
+    socket.on("admin_card_registration", (nfc_id: string) => {
+      setIsScanning(true)
+      setCardError(null)
+      setSelectedCard(nfc_id)
+      toast({
+        title: "Websocket",
+        description: `Nfc card with ID: ${nfc_id}!!`,
+      })
+    });
+
+    return () => {
+      socket.disconnect();
+    }
+  }, [])
 
   const handleAssignCard = async () => {
     if (!selectedUser || !selectedCard) {
@@ -196,7 +244,7 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
               <div className="p-4 text-center">
                 <User className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-muted-foreground">
-                  {users.length === 0 ? "No users available" : "No users match your search"}
+                  {usersData?.users?.length === 0 ? "No users available" : "No users match your search"}
                 </p>
               </div>
             )}
@@ -234,14 +282,6 @@ export function CardAssignment({ users, unassignedCards, onAssign }: CardAssignm
                     ></div>
                     <ContactlessIcon className="w-12 h-12 text-primary relative z-10" />
                   </div>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleScanCard}
-                    disabled={isScanning || isLoading}
-                  >
-                    {isScanning ? "Scanning..." : "Simulate Card Scan"}
-                  </Button>
                   {selectedCard && !cardError && (
                     <div className="text-center mt-2">
                       <span className="text-sm text-muted-foreground">Card detected:</span>

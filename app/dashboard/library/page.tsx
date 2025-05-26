@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Book, BookOpen, Home, Library, Settings, User, Users } from "lucide-react"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -12,6 +12,8 @@ import { LibraryUserDetails } from "@/components/library/user-details"
 import { BookBorrowing } from "@/components/library/book-borrowing"
 import { BookReturning } from "@/components/library/book-returning"
 import { CardSimulator } from "@/components/card-simulator"
+import {gql, useQuery} from "@apollo/client"
+import {io} from "socket.io-client"
 
 const navItems = [
   { href: "/dashboard/library", label: "Dashboard", icon: Home },
@@ -20,13 +22,74 @@ const navItems = [
   { href: "/dashboard/library/settings", label: "Settings", icon: Settings },
 ]
 
+
+const USERS_NFCID = gql`query UsersByNfc($nfcId: Text!) {
+  nfcCardsByNfcId(nfcId: $nfcId) {
+    assignedCards {
+      user {
+        avatar
+        email
+        id
+        name
+        role
+        phoneNumber
+      }
+    }
+  }
+}`
+
 export default function LibraryDashboardPage() {
   const { toast } = useToast()
   const [activeUser, setActiveUser] = useState<any>(null)
   const [borrowedBooks, setBorrowedBooks] = useState<any[]>([])
+  const [scannedCardId, setScannedCardId] = useState<string | null>(null)
 
-  const handleScan = (user: any) => {
-    setActiveUser(user)
+  const {loading, error, data, refetch} = useQuery(USERS_NFCID, {variables: { nfcId: scannedCardId},skip:!scannedCardId})
+
+  useEffect(() => {
+    const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL 
+
+    if (!wsurl) {
+      console.error("WebSocket URL is not defined!")
+      return;
+    }
+
+    const socket = io(wsurl, {
+      transports: ["websocket"]
+    })
+
+    socket.on("connect", () => {
+      console.log("Connected to websocket!")
+    })
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from websocket!")
+    })
+
+    socket.on("admin_card_registration", async (nfcId:string) => {
+      setScannedCardId(nfcId)
+      const {data}=await refetch({nfcId})
+      console.log("Was here!!",data)
+      handleScan(data);
+    });
+      
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
+
+  const handleScan = (userData: any) => {
+
+    console.log("data: ", userData)
+    const userr = {
+      id: userData.nfcCardsByNfcId?.assignedCards[0]?.user.id ? userData.nfcCardsByNfcId.assignedCards[0]?.user.id : "-",
+      name: userData.nfcCardsByNfcId?.assignedCards[0]?.user.name ? userData.nfcCardsByNfcId.assignedCards[0]?.user.name : "-",
+      email: userData.nfcCardsByNfcId?.assignedCards[0]?.user.email ? userData.nfcCardsByNfcId.assignedCards[0]?.user.email : "-",
+      phone: userData.nfcCardsByNfcId?.assignedCards[0]?.user.phoneNumber ? userData.nfcCardsByNfcId.assignedCards[0]?.user.phoneNumber : "-",
+      position: userData.nfcCardsByNfcId?.assignedCards[0]?.user.role ? userData.nfcCardsByNfcId.assignedCards[0]?.user.role : "-",
+      photo: userData.nfcCardsByNfcId?.assignedCards[0]?.user.avatar ? userData.nfcCardsByNfcId.assignedCards[0]?.user.avatar : "-",
+    }
+    setActiveUser(userr)
 
     // Initialize borrowed books from the user data
     if (user.borrowedBooks && user.borrowedBooks.length > 0) {

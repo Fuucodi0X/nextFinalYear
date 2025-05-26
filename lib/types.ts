@@ -29,5 +29,12 @@ export type ComplainType = {
   severity: string,
   type: string,
   status: string
+  resolutionNotes: string
+  resolution: string
+  resolutionDate: string
+  timestamp: string
+  source: string
+  id: string
+  userName: string
 }
 export type ComplainWithUserType = ComplainType & { userName: string }

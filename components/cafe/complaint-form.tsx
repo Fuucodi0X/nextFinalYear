@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AlertCircle, MessageSquare, Search } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,22 +15,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ComplainType, UserType } from "@/lib/types"
+import { gql, useMutation } from "@apollo/client"
 
 interface CafeComplaintFormProps {
-  user: {
-    id: string
-    name: string
-    photo: string
-  }
+ 
+  user: UserType
   onSubmit: (complaint: any) => void
-  complaints: any[]
+  
+  complaints: ComplainType[]
 }
+
+const insertComplaint = gql`
+ mutation insertIssue($accuserId:Uuid!,$accuedId:Uuid!,$description:Text!,$severity:Varchar,$complaintType:Varchar){
+  insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description,severity: $severity,complaintType: $complaintType }) {
+    affectedRows
+    returning {
+      description
+      severity
+      complaintType
+    }
+  }
+}
+`
 
 export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintFormProps) {
   const [complaintType, setComplaintType] = useState("")
   const [description, setDescription] = useState("")
   const [severity, setSeverity] = useState("medium")
   const [searchQuery, setSearchQuery] = useState("")
+  console.log(complaints)
+  const [insertComplain] = useMutation(insertComplaint)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,6 +58,9 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
       severity,
     })
 
+
+    const accuerUser = JSON.parse(localStorage.getItem("user") ?? "")
+     insertComplain({ variables: { accuserId: accuerUser.id, accuedId: user.id, description, severity, complaintType } })
     // Reset form
     setComplaintType("")
     setDescription("")
@@ -50,11 +68,12 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
   }
 
   const filteredComplaints = complaints.filter((complaint) => {
+    console.log(complaint)
     if (!searchQuery) return true
 
     const query = searchQuery.toLowerCase()
-    return complaint.type.toLowerCase().includes(query) || complaint.description.toLowerCase().includes(query)
-  })
+    return complaint.type?.toLowerCase().includes(query) || complaint.description?.toLowerCase().includes(query)})
+  console.log(complaints)
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -67,7 +86,7 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4 mb-2">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user.photo || "/placeholder.svg"} alt={user.name} />
+                <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user.name} />
                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div>
@@ -85,12 +104,12 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
                   <SelectValue placeholder="Select complaint type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="food-quality">Food Quality Issue</SelectItem>
-                  <SelectItem value="service">Poor Service</SelectItem>
-                  <SelectItem value="behavior">Behavioral Issue</SelectItem>
-                  <SelectItem value="cleanliness">Cleanliness Issue</SelectItem>
-                  <SelectItem value="meal-plan">Meal Plan Violation</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="double-dipping">Student Trying to Eat Twice</SelectItem>
+                    <SelectItem value="behavior">Behavioral Issues</SelectItem>
+                    <SelectItem value="disruptive-behavior">Disruptive Behavior</SelectItem>
+                    <SelectItem value="theft">Theft of Food or Items</SelectItem>
+                    <SelectItem value="line-cutting">Cutting in Line</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -150,8 +169,8 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
           {filteredComplaints.length > 0 ? (
             <ScrollArea className="h-[350px]">
               <div className="space-y-4">
-                {filteredComplaints.map((complaint) => (
-                  <div key={complaint.id} className="rounded-lg border p-4">
+                {filteredComplaints.map((complaint,index) => (
+                  <div key={index} className="rounded-lg border p-4">
                     <div className="flex items-center justify-between mb-2">
                       <Badge
                         variant={
@@ -164,23 +183,24 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
                                 : "outline"
                         }
                       >
-                        {complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1)}
+                        {complaint.severity?complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1):""}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
+                      {/* <span className="text-xs text-muted-foreground">
                         {new Date(complaint.timestamp).toLocaleString()}
-                      </span>
+                      </span> */}
                     </div>
 
                     <h4 className="font-medium flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 text-primary" />
-                      {complaint.type
+                      {complaint.type ? (complaint.type
                         .split("-")
                         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(" ")}{" "}
+                        .join(" ")):""
+                      }{" "}
                       Issue
                     </h4>
 
-                    <p className="mt-2 text-sm">{complaint.description}</p>
+                    <p className="mt-2 text-sm">{complaint.description ?? ""}</p>
                   </div>
                 ))}
               </div>

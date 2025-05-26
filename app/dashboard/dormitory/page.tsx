@@ -24,6 +24,23 @@ const navItems = [
   { href: "/dashboard/dormitory/settings", label: "Settings", icon: Settings },
 ]
 
+const USERS_NFCID = gql`query UsersByNfc($nfcId: Text!) {
+  nfcCardsByNfcId(nfcId: $nfcId) {
+    assignedCards {
+      user {
+        avatar
+        email
+        id
+        name
+        role
+        phoneNumber
+      }
+    }
+  }
+}`
+
+
+
 export default function DormitoryDashboardPage() {
   const { toast } = useToast()
   const [activeUser, setActiveUser] = useState<UserType | null>(null)

@@ -30,7 +30,7 @@ const navItems = [
   // { href: "/dashboard/admin/users", label: "Users", icon: Users },
   { href: "/dashboard/admin/cards", label: "Cards", icon: CreditCard },
   { href: "/dashboard/admin/courses", label: "Courses", icon: BookOpen },
-  { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
+  // { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
 ]
 
 // Sample course data

@@ -64,38 +64,37 @@ export const mockUsers = [
     accessLevel: "High",
     photo: "/placeholder.svg?height=128&width=128",
     // Dormitory specific
-    dormitory: "Faculty Housing, Block C",
-    keyStatus: "issued",
+    // dormitory: "Faculty Housing, Block C",
+    // keyStatus: "issued",
     // Cafe specific
-    mealPlan: "Faculty Plan",
-    lastMeal: "Dinner, 2 days ago",
+    // mealPlan: "Faculty Plan",
+    // lastMeal: "Dinner, 2 days ago",
     // Library specific
-    borrowedBooks: [
-      { id: "BK-2001", title: "Quantum Physics", dueDate: "2023-05-15" },
-      { id: "BK-2002", title: "The Universe in a Nutshell", dueDate: "2023-05-22" },
-    ],
+    // borrowedBooks: [
+    //   { id: "BK-2001", title: "Quantum Physics", dueDate: "2023-05-15" },
+    //   { id: "BK-2002", title: "The Universe in a Nutshell", dueDate: "2023-05-22" },
+    // ],
   },
   {
     id: "STU-1003",
     name: "Emily Davis",
     email: "emily.davis@university.edu",
     phone: "(555) 456-7890",
-    department: "Literature",
     position: "Student",
     accessLevel: "Medium",
     photo: "/placeholder.svg?height=128&width=128",
     // Dormitory specific
-    dormitory: "Building A, Room 310",
-    keyStatus: "issued",
+    // dormitory: "Building A, Room 310",
+    // keyStatus: "issued",
     // Cafe specific
-    mealPlan: "Full Board",
-    lastMeal: "Dinner, Today",
+    // mealPlan: "Full Board",
+    // lastMeal: "Dinner, Today",
     // Library specific
-    borrowedBooks: [
-      { id: "BK-3001", title: "Pride and Prejudice", dueDate: "2023-05-18" },
-      { id: "BK-3002", title: "To Kill a Mockingbird", dueDate: "2023-05-25" },
-      { id: "BK-3003", title: "1984", dueDate: "2023-05-30" },
-    ],
+    // borrowedBooks: [
+    //   { id: "BK-3001", title: "Pride and Prejudice", dueDate: "2023-05-18" },
+    //   { id: "BK-3002", title: "To Kill a Mockingbird", dueDate: "2023-05-25" },
+    //   { id: "BK-3003", title: "1984", dueDate: "2023-05-30" },
+    // ],
   },
 ]
 

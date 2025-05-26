@@ -32,6 +32,11 @@ const USERS_NFCID = gql`query UsersByNfc($nfcId: Text!) {
         name
         role
         phoneNumber
+        complaines {
+              description
+              severity
+              type:complaintType
+        }
       }
     }
   }
@@ -174,8 +179,12 @@ export default function CafeDashboardPage() {
       photo: userData.nfcCardsByNfcId?.assignedCards[0]?.user.avatar ? userData.nfcCardsByNfcId.assignedCards[0]?.user.avatar : "-",
     }
     const user = mockUsers[Math.floor(Math.random() * mockUsers.length)]
-
+    // console.log(userData)
+    if (userData.nfcCardsByNfcId?.assignedCards[0]?.user.complaines) {
+        setComplaints(prev => [...prev, ...userData.nfcCardsByNfcId?.assignedCards[0]?.user.complaines])
+      }
     setActiveUser(userr)
+    
 
     toast({
       title: "ID Card Scanned",
@@ -423,7 +432,7 @@ export default function CafeDashboardPage() {
             <CafeComplaintForm
               user={activeUser}
               onSubmit={handleAddComplaint}
-              complaints={complaints.filter((complaint) => complaint.userId === activeUser.id)}
+              complaints={complaints}
             />
           ) : (
             <Card>

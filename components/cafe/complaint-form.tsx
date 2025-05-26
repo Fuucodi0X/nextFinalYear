@@ -27,14 +27,16 @@ interface CafeComplaintFormProps {
 }
 
 const insertComplaint = gql`
-  mutation insertIssue($accuserId:Uuid!,$accuedId:Uuid!,$description:Text!){
-    insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description }) {
-      affectedRows
-      returning {
-        description
-      }
+ mutation insertIssue($accuserId:Uuid!,$accuedId:Uuid!,$description:Text!,$severity:Varchar,$complaintType:Varchar){
+  insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description,severity: $severity,complaintType: $complaintType }) {
+    affectedRows
+    returning {
+      description
+      severity
+      complaintType
     }
   }
+}
 `
 
 export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintFormProps) {
@@ -42,7 +44,7 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
   const [description, setDescription] = useState("")
   const [severity, setSeverity] = useState("medium")
   const [searchQuery, setSearchQuery] = useState("")
-
+  console.log(complaints)
   const [insertComplain] = useMutation(insertComplaint)
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -58,8 +60,7 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
 
 
     const accuerUser = JSON.parse(localStorage.getItem("user") ?? "")
-    insertComplain({ variables: { accuserId: accuerUser.id, accuedId: user.id, description } })
-
+     insertComplain({ variables: { accuserId: accuerUser.id, accuedId: user.id, description, severity, complaintType } })
     // Reset form
     setComplaintType("")
     setDescription("")
@@ -67,11 +68,11 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
   }
 
   const filteredComplaints = complaints.filter((complaint) => {
+    console.log(complaint)
     if (!searchQuery) return true
 
     const query = searchQuery.toLowerCase()
-    return complaint.type.toLowerCase().includes(query) || complaint.description.toLowerCase().includes(query)
-  })
+    return complaint.type?.toLowerCase().includes(query) || complaint.description?.toLowerCase().includes(query)})
   console.log(complaints)
 
   return (
@@ -168,8 +169,8 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
           {filteredComplaints.length > 0 ? (
             <ScrollArea className="h-[350px]">
               <div className="space-y-4">
-                {filteredComplaints.map((complaint) => (
-                  <div key={complaint.id} className="rounded-lg border p-4">
+                {filteredComplaints.map((complaint,index) => (
+                  <div key={index} className="rounded-lg border p-4">
                     <div className="flex items-center justify-between mb-2">
                       <Badge
                         variant={
@@ -182,23 +183,24 @@ export function CafeComplaintForm({ user, onSubmit, complaints }: CafeComplaintF
                                 : "outline"
                         }
                       >
-                        {complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1)}
+                        {complaint.severity?complaint.severity.charAt(0).toUpperCase() + complaint.severity.slice(1):""}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
+                      {/* <span className="text-xs text-muted-foreground">
                         {new Date(complaint.timestamp).toLocaleString()}
-                      </span>
+                      </span> */}
                     </div>
 
                     <h4 className="font-medium flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 text-primary" />
-                      {complaint.type
+                      {complaint.type ? (complaint.type
                         .split("-")
                         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(" ")}{" "}
+                        .join(" ")):""
+                      }{" "}
                       Issue
                     </h4>
 
-                    <p className="mt-2 text-sm">{complaint.description}</p>
+                    <p className="mt-2 text-sm">{complaint.description ?? ""}</p>
                   </div>
                 ))}
               </div>

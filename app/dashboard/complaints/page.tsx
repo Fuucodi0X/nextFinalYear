@@ -35,8 +35,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
-import {gql, useQuery} from "@apollo/client"
-import {io} from "socket.io-client"
+import { gql, useMutation, useQuery } from "@apollo/client"
+import { io } from "socket.io-client"
 
 const navItems = [
   { href: "/dashboard/complaints", label: "Dashboard", icon: Home },
@@ -74,6 +74,7 @@ const PENDING_COMPLAINTS = gql`query complaints {
      }
   }) {
     user {
+      id
       name
       avatar
     }
@@ -87,7 +88,55 @@ const PENDING_COMPLAINTS = gql`query complaints {
   }
 }`
 
-
+const UPDATE_COMPLAINTS_STATUS = gql`
+mutation UpdateComplainesById($keyId: Uuid!, $status: Varchar!) {
+  updateComplainesById(keyId: $keyId, updateColumns:{status:  {
+     set: $status
+  }}) {
+   affectedRows
+  }
+}
+`
+const INSERT_WARNINGS = gql`
+mutation InsertWarnings(
+  $compliainId: Uuid!,
+  $warnedUserId:Uuid!,$warningApprover:Uuid!) {
+  insertWarnings(objects:  {
+     complainId: $compliainId,
+     warnedUserId: $warnedUserId,
+     warningApprover: $warningApprover
+  }) {
+    affectedRows
+  }
+}
+`
+const INSERT_SUSPENSIONS = gql`
+mutation InsertSuspensions(
+  $compliainId: Uuid!,
+  $suspendedUserId:Uuid!,$suspensionApprover:Uuid!) {
+  insertSuspensions(objects: {
+    complainId: $compliainId,
+    suspendedUserId: $suspendedUserId,
+    suspensionApprover: $suspensionApprover
+  }) {
+    affectedRows
+  }
+}
+`
+const INSERT_DISMISSAL = gql`
+mutation InsertDismisal(
+    $compliainId: Uuid!,
+  $dismisserId:Uuid!,$dismissedId:Uuid!
+){
+  insertDismissal(objects: {
+     complaintsId: $compliainId,
+     dismisserId:$dismisserId,
+     dismissedUser: $dismissedId,
+     }) {
+    affectedRows
+  }
+}
+`
 export default function ComplaintsDashboardPage() {
   const { toast } = useToast()
   const [activeUser, setActiveUser] = useState<any>(null)
@@ -100,11 +149,22 @@ export default function ComplaintsDashboardPage() {
   const [actionNotes, setActionNotes] = useState("")
   const [actionDuration, setActionDuration] = useState("7")
   const [scannedCardId, setScannedCardId] = useState<string | null>(null)
-  const {loading, error, data, refetch} = useQuery(USERS_NFCID, {variables: { nfcId: scannedCardId},skip:!scannedCardId})
-  const {data: pendingComplaints, loading: loadingPendingComplaints, error: pendingComplaintsError} = useQuery(PENDING_COMPLAINTS)
-    
+  const { loading, error, data, refetch } = useQuery(USERS_NFCID, { variables: { nfcId: scannedCardId }, skip: !scannedCardId })
+  const { data: pendingComplaints, loading: loadingPendingComplaints, error: pendingComplaintsError } = useQuery(PENDING_COMPLAINTS)
+  const [updateCompliantStatus] = useMutation(UPDATE_COMPLAINTS_STATUS)
+
+  const [insertWarnings] = useMutation(INSERT_WARNINGS)
+  const [insertSuspension] = useMutation(INSERT_SUSPENSIONS)
+  const [insertDismissal] = useMutation(INSERT_DISMISSAL)
+
+  const [compliantOfficer, setCompliantOfficer] = useState()
+
   useEffect(() => {
-    const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL 
+    const approverUser = localStorage.getItem("user")
+    if (approverUser)
+      setCompliantOfficer(JSON.parse(approverUser))
+
+    const wsurl = process.env.NEXT_PUBLIC_WEBSOCKET_URL
 
     if (!wsurl) {
       console.error("WebSocket URL is not defined!")
@@ -125,9 +185,9 @@ export default function ComplaintsDashboardPage() {
 
     socket.on("admin_card_registration", async (nfcId: string) => {
       setScannedCardId(nfcId)
-      const {data} = await refetch({nfcId})
+      const { data } = await refetch({ nfcId })
       handleScan(data)
-  
+
       console.log(`Nfc_id: ${nfcId}`)
     })
 
@@ -136,7 +196,7 @@ export default function ComplaintsDashboardPage() {
     }
   }, [])
 
-  const handleScan = (userData: any) => {    
+  const handleScan = (userData: any) => {
     console.log("Data", userData)
     const user = {
       id: userData?.data?.user.id ? userData?.data?.user.id : "-",
@@ -146,7 +206,7 @@ export default function ComplaintsDashboardPage() {
       position: userData?.data?.user.role ? userData?.data?.user.role : "-",
       photo: userData?.data?.user.avatar ? userData?.data?.user.avatar : "-",
     }
- 
+
     setActiveUser(user)
 
     toast({
@@ -181,28 +241,58 @@ export default function ComplaintsDashboardPage() {
     setComplaints(updatedComplaints)
 
     // Update user warning/suspension count if needed
-    if (activeUser && selectedComplaint.userId === activeUser.id) {
-      if (actionType === "warning") {
-        setActiveUser({
-          ...activeUser,
-          warningCount: activeUser.warningCount + 1,
-        })
-      } else if (actionType === "suspension") {
-        setActiveUser({
-          ...activeUser,
-          suspensionCount: activeUser.suspensionCount + 1,
-          status: "suspended",
-        })
-      }
+    // if (activeUser) {
+    console.log(selectedComplaint.id)
+    if (actionType === "warning") {
+      updateCompliantStatus({ variables: { keyId: selectedComplaint?.id, status: "resolved" } })
+      insertWarnings({
+        variables: {
+          compliainId: selectedComplaint?.id,
+          warnedUserId: selectedComplaint.user.id,
+          warningApprover: compliantOfficer?.id
+        }
+      })
+      setActiveUser({
+        ...activeUser,
+        warningCount: activeUser.warningCount + 1,
+      })
+
+    } else if (actionType === "suspension") {
+      console.log("suspension")
+      updateCompliantStatus({ variables: { keyId: selectedComplaint?.id, status: "resolved" } })
+      insertSuspension({
+        variables: {
+          compliainId: selectedComplaint?.id, suspendedUserId: selectedComplaint.user.id, suspensionApprover: compliantOfficer?.id
+        }
+      })
+      setActiveUser({
+        ...activeUser,
+        // suspensionCount: activeUser.suspensionCount + 1,
+        status: "suspended",
+      })
+    } else if (actionType == "dismiss") {
+      updateCompliantStatus({ variables: { keyId: selectedComplaint?.id, status: "resolved" } })
+      insertDismissal({
+        variables: {
+          compliainId: selectedComplaint?.id, dismisserId: compliantOfficer?.id, dismissedId: selectedComplaint.user.id
+        }
+      })
+      setActiveUser({
+        ...activeUser,
+        // suspensionCount: activeUser.dismissalCount + 1,
+        status: "dismissed",
+      })
+
     }
+    // }
 
     // Show toast notification
     toast({
       title: `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} Issued`,
       description:
         actionType === "dismiss"
-          ? `Complaint dismissed for ${selectedComplaint.userName}`
-          : `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} issued to ${selectedComplaint.userName}`,
+          ? `Complaint dismissed for ${selectedComplaint.user.name}`
+          : `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} issued to ${selectedComplaint.user.name}`,
     })
 
     setShowActionDialog(false)
@@ -410,16 +500,16 @@ export default function ComplaintsDashboardPage() {
                       complaint.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                       complaint.type?.toLowerCase().includes(searchQuery.toLowerCase()),
                   ).length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <Check className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="font-medium mb-1">No Pending Complaints</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {searchQuery
-                          ? "No complaints match your search criteria"
-                          : "All complaints have been processed"}
-                      </p>
-                    </div>
-                  )}
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Check className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="font-medium mb-1">No Pending Complaints</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {searchQuery
+                            ? "No complaints match your search criteria"
+                            : "All complaints have been processed"}
+                        </p>
+                      </div>
+                    )}
                 </div>
               </ScrollArea>
             </CardContent>
@@ -438,7 +528,7 @@ export default function ComplaintsDashboardPage() {
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
                     <AvatarImage src={activeUser.avatar || "/placeholder.svg"} alt={activeUser.name} />
-                    <AvatarFallback>{activeUser.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{activeUser?.name.charAt(0) ?? ""}</AvatarFallback>
                   </Avatar>
                   <div>
                     <h3 className="font-medium">{activeUser.name}</h3>

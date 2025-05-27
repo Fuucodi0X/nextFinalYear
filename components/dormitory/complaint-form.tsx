@@ -26,12 +26,13 @@ interface DormitoryComplaintFormProps {
 
 const insertComplaint = gql`
 mutation insertIssue($accuserId:Uuid!,$accuedId:Uuid!,$description:Text!,$severity:Varchar,$complaintType:Varchar){
-  insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description,severity: $severity,complaintType: $complaintType }) {
+  insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description,severity: $severity,complaintType: $complaintType,source: dormitory}) {
     affectedRows
     returning {
       description
       severity
       complaintType
+      source
     }
   }
 }

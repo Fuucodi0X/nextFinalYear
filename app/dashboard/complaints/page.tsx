@@ -150,14 +150,14 @@ export default function ComplaintsDashboardPage() {
   const [actionDuration, setActionDuration] = useState("7")
   const [scannedCardId, setScannedCardId] = useState<string | null>(null)
   const { loading, error, data, refetch } = useQuery(USERS_NFCID, { variables: { nfcId: scannedCardId }, skip: !scannedCardId })
-  const { data: pendingComplaints, loading: loadingPendingComplaints, error: pendingComplaintsError } = useQuery(PENDING_COMPLAINTS)
+  const { data: pendingComplaints, loading: loadingPendingComplaints, error: pendingComplaintsError, refetch: refetchPendingComplaints } = useQuery(PENDING_COMPLAINTS)
   const [updateCompliantStatus] = useMutation(UPDATE_COMPLAINTS_STATUS)
 
   const [insertWarnings] = useMutation(INSERT_WARNINGS)
   const [insertSuspension] = useMutation(INSERT_SUSPENSIONS)
   const [insertDismissal] = useMutation(INSERT_DISMISSAL)
 
-  const [compliantOfficer, setCompliantOfficer] = useState()
+  const [compliantOfficer, setCompliantOfficer] = useState<any>()
 
   useEffect(() => {
     const approverUser = localStorage.getItem("user")
@@ -254,9 +254,9 @@ export default function ComplaintsDashboardPage() {
       })
       setActiveUser({
         ...activeUser,
-        warningCount: activeUser.warningCount + 1,
+        // warningCount: activeUser.warningCount + 1,
       })
-
+      refetchPendingComplaints()
     } else if (actionType === "suspension") {
       console.log("suspension")
       updateCompliantStatus({ variables: { keyId: selectedComplaint?.id, status: "resolved" } })
@@ -270,6 +270,7 @@ export default function ComplaintsDashboardPage() {
         // suspensionCount: activeUser.suspensionCount + 1,
         status: "suspended",
       })
+      refetchPendingComplaints()
     } else if (actionType == "dismiss") {
       updateCompliantStatus({ variables: { keyId: selectedComplaint?.id, status: "resolved" } })
       insertDismissal({
@@ -282,18 +283,9 @@ export default function ComplaintsDashboardPage() {
         // suspensionCount: activeUser.dismissalCount + 1,
         status: "dismissed",
       })
-
+      refetchPendingComplaints()
     }
     // }
-
-    // Show toast notification
-    toast({
-      title: `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} Issued`,
-      description:
-        actionType === "dismiss"
-          ? `Complaint dismissed for ${selectedComplaint.user.name}`
-          : `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} issued to ${selectedComplaint.user.name}`,
-    })
 
     setShowActionDialog(false)
   }
@@ -528,7 +520,7 @@ export default function ComplaintsDashboardPage() {
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
                     <AvatarImage src={activeUser.avatar || "/placeholder.svg"} alt={activeUser.name} />
-                    <AvatarFallback>{activeUser?.name.charAt(0) ?? ""}</AvatarFallback>
+                    <AvatarFallback>{activeUser?.name?.charAt(0) ?? ""}</AvatarFallback>
                   </Avatar>
                   <div>
                     <h3 className="font-medium">{activeUser.name}</h3>

@@ -28,7 +28,7 @@ interface CafeComplaintFormProps {
 
 const insertComplaint = gql`
  mutation insertIssue($accuserId:Uuid!,$accuedId:Uuid!,$description:Text!,$severity:Varchar,$complaintType:Varchar){
-  insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description,severity: $severity,complaintType: $complaintType }) {
+  insertComplaines(objects: {accusedId: $accuedId, accuserId: $accuserId,description:$description,severity: $severity,complaintType: $complaintType, source: "cafe" }) {
     affectedRows
     returning {
       description
